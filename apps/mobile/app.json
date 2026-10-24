@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Ration",
+    "slug": "ration",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#faf9f5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ration.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#faf9f5"
+      },
+      "package": "com.ration.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

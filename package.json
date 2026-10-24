@@ -1,0 +1,25 @@
+{
+  "name": "ration",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "check": "npx @biomejs/biome check --write . && node scripts/verify-invariants.js",
+    "check:invariants": "node scripts/verify-invariants.js",
+    "format": "npx @biomejs/biome format --write .",
+    "lint": "npx @biomejs/biome lint .",
+    "test:audit": "vitest run tests/audit/ --fileParallelism=false",
+    "audit:contracts": "vitest run tests/audit/contracts.test.ts",
+    "audit:i18n": "vitest run tests/audit/i18n.test.ts",
+    "dev:mobile": "npm --workspace=apps/mobile run start",
+    "dev:web": "npm --workspace=apps/web run dev"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "vitest": "^5.0.4"
+  }
+}
