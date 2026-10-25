@@ -3,7 +3,7 @@ import type { Translations } from "./en.js";
 export const id: Translations = {
   app: {
     title: "Ration",
-    subtitle: "Sistem Manajemen Ransum",
+    subtitle: "Pelacak Anggaran Harian",
   },
   common: {
     loading: "Memuat...",
@@ -34,5 +34,30 @@ export const id: Translations = {
   locale: {
     english: "EN",
     indonesian: "ID",
+  },
+  tracker: {
+    cycleTitle: "Siklus Gaji",
+    totalBalance: "Saldo Total",
+    daysLeft: "Sisa {days} hari",
+    perDay: "{amount} / hari",
+    spend: "Pengeluaran",
+    deposit: "Pemasukan",
+    today: "Hari Ini",
+    keypadTitle: "Catat Pengeluaran",
+    amountPlaceholder: "0",
+    confirm: "Konfirmasi",
+    clear: "Hapus",
+    close: "Tutup",
+    spentToday: "Terpakai: {amount}",
+    dailyBudget: "Anggaran Harian",
+  },
+  weekdays: {
+    mon: "S",
+    tue: "S",
+    wed: "R",
+    thu: "K",
+    fri: "J",
+    sat: "S",
+    sun: "M",
   },
 };

@@ -58,10 +58,13 @@ Before planning or writing any code, consult this inventory:
 - `EntityIdSchema` (UUID validation)
 - `RationItemSchema`, `CreateRationItemSchema`, `UpdateRationItemSchema`, `type RationItem`, `type CreateRationItemDto`
 - `DistributionRecordSchema`, `CreateDistributionRecordSchema`, `type DistributionRecord`, `type CreateDistributionRecordDto`
+- `MoneyCycleSchema`, `CreateMoneyCycleSchema`, `type MoneyCycle`, `type CreateMoneyCycleDto`
+- `SpendTransactionSchema`, `CreateSpendTransactionSchema`, `type SpendTransaction`, `type CreateSpendTransactionDto`
+- `DailyAllocationSchema`, `type DailyAllocation`
 
 ### Official Design System
 
-- `TOKENS` (`src/theme/tokens.ts` in `apps/mobile` and `apps/web`): Canvas `#faf9f5`, ruby `#be123c`, 18px card radius, `textOnPrimary` and `surface` `#ffffff`.
+- `TOKENS` (`src/theme/tokens.ts` in `apps/mobile` and `apps/web`): Canvas `#0a0a0b`, signal yellow `#ffe500`, surface `#141416`, surfaceElevated `#1c1c20`, 18px card radius, `textOnPrimary` `#0a0a0b`.
 
 ### Localization Engine (`src/i18n/`)
 

@@ -28,7 +28,7 @@ Welcome to the architectural specification for **Ration**. This document details
 2. **Contract-Driven Design:**  
    All entity models, validation rules, and input DTOs originate in `@ration/types`. No domain types are duplicated in client applications.
 3. **Design System Consistency:**  
-   Colors, radii, and spacing tokens mirror across mobile and web runtimes, anchored around the Steamer Porcelain palette (`#faf9f5` canvas, `#be123c` primary accent).
+   Colors, radii, and spacing tokens mirror across mobile and web runtimes, anchored around the high-contrast yellow-black palette (`#0a0a0b` canvas, `#ffe500` signal yellow primary accent).
 4. **Resilient Internationalization:**  
    Bilingual translation (English and Indonesian) is enforced at build and lint time, preventing raw UI string leaks.
 

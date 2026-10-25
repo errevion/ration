@@ -49,3 +49,55 @@ export const CreateDistributionRecordSchema = DistributionRecordSchema.omit({
   id: EntityIdSchema.optional(),
 });
 export type CreateDistributionRecordDto = z.infer<typeof CreateDistributionRecordSchema>;
+
+export const MoneyCycleSchema = z.object({
+  id: EntityIdSchema,
+  name: z.string().min(1).max(128),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startingBalance: z.number().nonnegative(),
+  currency: z.string().min(1).max(8).default("$"),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type MoneyCycle = z.infer<typeof MoneyCycleSchema>;
+
+export const CreateMoneyCycleSchema = MoneyCycleSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  id: EntityIdSchema.optional(),
+  currency: z.string().min(1).max(8).default("$"),
+});
+export type CreateMoneyCycleDto = z.infer<typeof CreateMoneyCycleSchema>;
+
+export const SpendTransactionSchema = z.object({
+  id: EntityIdSchema,
+  cycleId: EntityIdSchema,
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  amount: z.number().positive(),
+  notes: z.string().max(256).optional(),
+  createdAt: z.string().datetime(),
+});
+export type SpendTransaction = z.infer<typeof SpendTransactionSchema>;
+
+export const CreateSpendTransactionSchema = SpendTransactionSchema.omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  id: EntityIdSchema.optional(),
+});
+export type CreateSpendTransactionDto = z.infer<typeof CreateSpendTransactionSchema>;
+
+export const DailyAllocationSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dayNumber: z.number().int().min(1).max(31),
+  dayOfWeek: z.number().int().min(0).max(6),
+  isPast: z.boolean(),
+  isToday: z.boolean(),
+  isFuture: z.boolean(),
+  spentAmount: z.number().nonnegative(),
+  projectedQuota: z.number().nonnegative(),
+});
+export type DailyAllocation = z.infer<typeof DailyAllocationSchema>;
