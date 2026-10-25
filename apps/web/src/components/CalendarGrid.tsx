@@ -2,6 +2,7 @@ import type { DailyAllocation } from "@ration/types";
 import type React from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
+import { formatMetricAmount } from "../utils/formatters.js";
 
 interface CalendarGridProps {
   days: DailyAllocation[];
@@ -147,15 +148,18 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               </span>
               <span
                 style={{
-                  fontSize: "14px",
+                  fontSize: "13px",
                   fontWeight: 700,
                   color: amountColor,
                   lineHeight: 1,
                   textAlign: "right",
                   fontVariantNumeric: "tabular-nums",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
-                {displayAmount}
+                {formatMetricAmount(displayAmount)}
               </span>
             </button>
           );
