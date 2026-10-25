@@ -1,0 +1,18 @@
+{
+  "editorPaddingX": 1,
+  "fullscreenExitOutput": "transcript",
+  "fullscreenScrollbar": "auto",
+  "markdown": {
+    "codeBlockIndent": "  ",
+    "mermaid": "streaming"
+  },
+  "outputPad": 1,
+  "packages": ["npm:pi-open-tui@^0.3.11"],
+  "terminal": {
+    "hyperlinks": true,
+    "showTerminalProgress": true,
+    "trueColor": true
+  },
+  "theme": "tokyo-night",
+  "tuiMode": "fullscreen"
+}
