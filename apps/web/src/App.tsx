@@ -4,6 +4,7 @@ import { CalendarGrid } from "./components/CalendarGrid.js";
 import { CycleHeader } from "./components/CycleHeader.js";
 import { KeypadDrawer } from "./components/KeypadDrawer.js";
 import { QuickBar } from "./components/QuickBar.js";
+import { SettingsDrawer } from "./components/SettingsDrawer.js";
 import { I18nProvider } from "./i18n/index.js";
 import { TOKENS } from "./theme/tokens.js";
 import { computeCycleBudget, formatIsoDate } from "./utils/budgetEngine.js";
@@ -77,11 +78,12 @@ function getInitialTransactions(cycleId: string, startDateStr: string): SpendTra
 }
 
 function TrackerApp() {
-  const [cycle] = useState<MoneyCycle>(getInitialCycle);
+  const [cycle, setCycle] = useState<MoneyCycle>(getInitialCycle);
   const [transactions, setTransactions] = useState<SpendTransaction[]>(() =>
     getInitialTransactions(cycle.id, cycle.startDate)
   );
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
 
   const todayIso = formatIsoDate(new Date());
@@ -101,6 +103,20 @@ function TrackerApp() {
     };
     setTransactions((prev) => [...prev, newTx]);
     setIsKeypadOpen(false);
+  }
+
+  function handleUpdateCycleSettings(settings: {
+    currency: string;
+    startDate: string;
+    endDate: string;
+  }) {
+    setCycle((prev) => ({
+      ...prev,
+      currency: settings.currency,
+      startDate: settings.startDate,
+      endDate: settings.endDate,
+      updatedAt: new Date().toISOString(),
+    }));
   }
 
   const todayQuota = Math.floor(computation.dailyAllowance);
@@ -150,6 +166,7 @@ function TrackerApp() {
             remainingBalance={computation.remainingBalance}
             remainingDaysCount={computation.remainingDaysCount}
             dailyAllowance={computation.dailyAllowance}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
 
           <CalendarGrid
@@ -179,6 +196,13 @@ function TrackerApp() {
           mode={keypadMode}
           onClose={() => setIsKeypadOpen(false)}
           onConfirm={handleRecordTransaction}
+        />
+
+        <SettingsDrawer
+          isOpen={isSettingsOpen}
+          cycle={cycle}
+          onClose={() => setIsSettingsOpen(false)}
+          onSave={handleUpdateCycleSettings}
         />
       </div>
     </div>
