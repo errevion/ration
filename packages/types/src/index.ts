@@ -72,11 +72,15 @@ export const CreateMoneyCycleSchema = MoneyCycleSchema.omit({
 });
 export type CreateMoneyCycleDto = z.infer<typeof CreateMoneyCycleSchema>;
 
+export const TransactionTypeSchema = z.enum(["spend", "income"]);
+export type TransactionType = z.infer<typeof TransactionTypeSchema>;
+
 export const SpendTransactionSchema = z.object({
   id: EntityIdSchema,
   cycleId: EntityIdSchema,
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   amount: z.number().positive(),
+  type: TransactionTypeSchema.default("spend"),
   notes: z.string().max(256).optional(),
   createdAt: z.string().datetime(),
 });
@@ -87,6 +91,7 @@ export const CreateSpendTransactionSchema = SpendTransactionSchema.omit({
   createdAt: true,
 }).extend({
   id: EntityIdSchema.optional(),
+  type: TransactionTypeSchema.default("spend"),
 });
 export type CreateSpendTransactionDto = z.infer<typeof CreateSpendTransactionSchema>;
 
@@ -98,6 +103,7 @@ export const DailyAllocationSchema = z.object({
   isToday: z.boolean(),
   isFuture: z.boolean(),
   spentAmount: z.number().nonnegative(),
+  incomeAmount: z.number().nonnegative().default(0),
   projectedQuota: z.number().nonnegative(),
 });
 export type DailyAllocation = z.infer<typeof DailyAllocationSchema>;

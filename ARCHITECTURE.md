@@ -57,14 +57,18 @@ ration/
 ├── apps/
 │   ├── mobile/                    # Expo React Native mobile client
 │   │   ├── src/
+│   │   │   ├── components/        # Mobile UI components (CalendarGrid, CycleHeader, KeypadModal, etc.)
 │   │   │   ├── i18n/              # Mobile localization dictionary & hook
 │   │   │   ├── theme/tokens.ts    # Mobile Steamer Porcelain design tokens
+│   │   │   ├── utils/             # Budget calculation & formatting engines
 │   │   │   └── App.tsx            # Mobile application entry point
 │   │   └── app.json               # Expo build & android metadata
 │   └── web/                       # Vite React web application
 │       ├── src/
+│       │   ├── components/        # Web UI components (CalendarGrid, CycleHeader, KeypadDrawer, etc.)
 │       │   ├── i18n/              # Web localization dictionary & hook
 │       │   ├── theme/tokens.ts    # Web Steamer Porcelain design tokens
+│       │   ├── utils/             # Budget calculation & formatting engines
 │       │   ├── App.tsx            # Web application dashboard
 │       │   └── main.tsx           # Web entry point
 │       └── vite.config.ts         # Vite bundler configuration

@@ -7,6 +7,7 @@ import { TOKENS } from "../theme/tokens.js";
 interface KeypadDrawerProps {
   isOpen: boolean;
   currency: string;
+  mode?: "spend" | "income";
   onClose: () => void;
   onConfirm: (amount: number) => void;
 }
@@ -14,6 +15,7 @@ interface KeypadDrawerProps {
 export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
   isOpen,
   currency,
+  mode = "spend",
   onClose,
   onConfirm,
 }) => {
@@ -148,7 +150,7 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
               color: TOKENS.colors.textMuted,
             }}
           >
-            {t("tracker.keypadTitle")}
+            {mode === "income" ? t("tracker.addTitle") : t("tracker.keypadTitle")}
           </span>
           <button
             type="button"
