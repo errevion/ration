@@ -1,7 +1,7 @@
 export const en = {
   app: {
     title: "Ration",
-    subtitle: "Ration Management System",
+    subtitle: "Daily Spend Tracker",
   },
   common: {
     loading: "Loading...",
@@ -33,7 +33,36 @@ export const en = {
     english: "EN",
     indonesian: "ID",
   },
+  tracker: {
+    cycleTitle: "Pay Cycle",
+    totalBalance: "Total Balance",
+    daysLeft: "{days} days left",
+    perDay: "{amount} / day",
+    spend: "Spend",
+    deposit: "Deposit",
+    today: "Today",
+    keypadTitle: "Record Spend",
+    amountPlaceholder: "0",
+    confirm: "Confirm",
+    clear: "Clear",
+    close: "Close",
+    spentToday: "Spent: {amount}",
+    dailyBudget: "Daily Budget",
+  },
+  weekdays: {
+    mon: "M",
+    tue: "T",
+    wed: "W",
+    thu: "T",
+    fri: "F",
+    sat: "S",
+    sun: "S",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof en;
-export type Translations = typeof en;
+type StringRecord<T> = {
+  [K in keyof T]: T[K] extends Record<string, unknown> ? StringRecord<T[K]> : string;
+};
+
+export type Translations = StringRecord<typeof en>;

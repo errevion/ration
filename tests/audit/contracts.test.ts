@@ -1,9 +1,14 @@
 import {
   CreateDistributionRecordSchema,
+  CreateMoneyCycleSchema,
   CreateRationItemSchema,
+  CreateSpendTransactionSchema,
+  DailyAllocationSchema,
   DistributionRecordSchema,
   LocaleSchema,
+  MoneyCycleSchema,
   RationItemSchema,
+  SpendTransactionSchema,
   UserRoleSchema,
 } from "@ration/types";
 import { describe, expect, it } from "vitest";
@@ -89,5 +94,79 @@ describe("Domain Audit: Contract & Schema Parity", () => {
       itemId: "not-a-uuid",
     };
     expect(CreateDistributionRecordSchema.safeParse(invalidUuid).success).toBe(false);
+  });
+
+  it("validates money cycle schema and rejects invalid dates or balances", () => {
+    const validCycle = {
+      id: "c0000000-0000-0000-0000-000000000001",
+      name: "October Pay Period",
+      startDate: "2025-10-25",
+      endDate: "2025-11-24",
+      startingBalance: 1200,
+      currency: "$",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    expect(MoneyCycleSchema.safeParse(validCycle).success).toBe(true);
+
+    const validCreate = {
+      name: "October Pay Period",
+      startDate: "2025-10-25",
+      endDate: "2025-11-24",
+      startingBalance: 1200,
+      currency: "$",
+    };
+    expect(CreateMoneyCycleSchema.safeParse(validCreate).success).toBe(true);
+
+    const invalidDate = {
+      ...validCycle,
+      startDate: "25-10-2025",
+    };
+    expect(MoneyCycleSchema.safeParse(invalidDate).success).toBe(false);
+
+    const negativeBalance = {
+      ...validCycle,
+      startingBalance: -50,
+    };
+    expect(MoneyCycleSchema.safeParse(negativeBalance).success).toBe(false);
+  });
+
+  it("validates spend transaction schema and rejects non-positive amounts", () => {
+    const validSpend = {
+      id: "d0000000-0000-0000-0000-000000000001",
+      cycleId: "c0000000-0000-0000-0000-000000000001",
+      date: "2025-10-26",
+      amount: 42.5,
+      notes: "Groceries",
+      createdAt: new Date().toISOString(),
+    };
+    expect(SpendTransactionSchema.safeParse(validSpend).success).toBe(true);
+
+    const validCreate = {
+      cycleId: "c0000000-0000-0000-0000-000000000001",
+      date: "2025-10-26",
+      amount: 42.5,
+    };
+    expect(CreateSpendTransactionSchema.safeParse(validCreate).success).toBe(true);
+
+    const zeroSpend = {
+      ...validSpend,
+      amount: 0,
+    };
+    expect(SpendTransactionSchema.safeParse(zeroSpend).success).toBe(false);
+  });
+
+  it("validates daily allocation schema", () => {
+    const validDay = {
+      date: "2025-10-28",
+      dayNumber: 28,
+      dayOfWeek: 1,
+      isPast: false,
+      isToday: true,
+      isFuture: false,
+      spentAmount: 0,
+      projectedQuota: 35.5,
+    };
+    expect(DailyAllocationSchema.safeParse(validDay).success).toBe(true);
   });
 });
