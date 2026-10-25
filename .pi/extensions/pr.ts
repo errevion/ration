@@ -95,18 +95,53 @@ function getExistingPr(cwd: string, projectEnv: Record<string, string>): Existin
   return null;
 }
 
-function getRepoReviewer(remoteUrl: string, env: Record<string, string>): string | undefined {
+function getRepoReviewer(
+  cwd: string,
+  remoteUrl: string,
+  env: Record<string, string>,
+  explicitReviewer?: string
+): string | undefined {
+  if (explicitReviewer?.trim()) {
+    return explicitReviewer.trim();
+  }
+
   if (env.PR_REVIEWER?.trim()) {
     return env.PR_REVIEWER.trim();
   }
-  const match = remoteUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)(?:\.git)?/i);
+
+  if (process.env.PR_REVIEWER?.trim()) {
+    return process.env.PR_REVIEWER.trim();
+  }
+
+  let currentActor = "yourcrewmate";
+  const userRes = runCmd("gh", ["api", "user", "--jq", ".login"], cwd, env);
+  if (userRes.status === 0 && userRes.stdout) {
+    currentActor = userRes.stdout.trim();
+  }
+
+  const repoRes = runCmd("gh", ["repo", "view", "--json", "owner"], cwd, env);
+  if (repoRes.status === 0 && repoRes.stdout) {
+    try {
+      const parsed = JSON.parse(repoRes.stdout);
+      const owner = parsed.owner?.login?.trim();
+      if (owner && owner.toLowerCase() !== currentActor.toLowerCase()) {
+        return owner;
+      }
+    } catch {}
+  }
+
+  const match =
+    remoteUrl.match(
+      /(?:github[a-z0-9_-]*|gh[a-z0-9_-]*)[:/](?:[0-9]+\/)?([a-zA-Z0-9_-]+)\/([^/.]+?)(?:\.git)?$/i
+    ) || remoteUrl.match(/[:/]([a-zA-Z0-9_-]+)\/([^/.]+?)(?:\.git)?$/);
+
   if (match) {
     const owner = match[1];
-    const currentBotUser = "yourcrewmate";
-    if (owner.toLowerCase() !== currentBotUser.toLowerCase()) {
+    if (owner.toLowerCase() !== currentActor.toLowerCase()) {
       return owner;
     }
   }
+
   return undefined;
 }
 
@@ -225,7 +260,12 @@ export default function prCommandExtension(pi: ExtensionAPI): void {
       const checkDevelop = runCmd("git", ["rev-parse", "--verify", "origin/develop"], cwd);
       const hasDevelop = checkDevelop.status === 0;
       const explicitTargetMaster = /(?:^|\s)--(master|prod)(?:$|\s)/i.test(args);
-      const cleanTitleArgs = args.replace(/(?:^|\s)--(master|prod)(?:$|\s)/gi, " ").trim();
+      const reviewerArgMatch = args.match(/(?:^|\s)(?:--reviewer|-r)\s+([a-zA-Z0-9_-]+)(?:$|\s)/i);
+      const explicitReviewer = reviewerArgMatch ? reviewerArgMatch[1] : undefined;
+      const cleanTitleArgs = args
+        .replace(/(?:^|\s)--(master|prod)(?:$|\s)/gi, " ")
+        .replace(/(?:^|\s)(?:--reviewer|-r)\s+([a-zA-Z0-9_-]+)(?:$|\s)/gi, " ")
+        .trim();
 
       if (hasDevelop) {
         if (currentBranch === "develop" || explicitTargetMaster) {
@@ -303,8 +343,7 @@ Implements changes according to project specification.
       }
 
       const projectEnv = loadEnvFile(cwd);
-      const reviewer = getRepoReviewer(remoteCheck.stdout, projectEnv);
-      const reviewerNotice = reviewer ? `\n**Reviewer:** @${reviewer}` : "";
+      const reviewer = getRepoReviewer(cwd, remoteCheck.stdout, projectEnv, explicitReviewer);
 
       // 9. Check if an open PR already exists for this branch
       const existingPr = getExistingPr(cwd, projectEnv);
@@ -325,8 +364,10 @@ Implements changes according to project specification.
         }
 
         let editRes = runCmd("gh", editArgs, cwd, projectEnv);
+        let reviewerAssigned = Boolean(reviewer);
+
         if (editRes.status !== 0 && reviewer) {
-          // Retry edit without --add-reviewer in case reviewer is already assigned
+          reviewerAssigned = false;
           editRes = runCmd(
             "gh",
             ["pr", "edit", String(existingPr.number), "--title", prTitle, "--body", prBody],
@@ -334,6 +375,8 @@ Implements changes according to project specification.
             projectEnv
           );
         }
+
+        const reviewerNotice = reviewerAssigned && reviewer ? `\n**Reviewer:** @${reviewer}` : "";
 
         if (editRes.status === 0) {
           pi.sendMessage(
@@ -373,8 +416,10 @@ Implements changes according to project specification.
       }
 
       let ghRes = runCmd("gh", ghArgs, cwd, projectEnv);
+      let reviewerAssigned = Boolean(reviewer);
+
       if (ghRes.status !== 0 && reviewer) {
-        // Fallback retry without --reviewer if reviewer assignment caused an error
+        reviewerAssigned = false;
         ghRes = runCmd(
           "gh",
           [
@@ -392,7 +437,21 @@ Implements changes according to project specification.
           cwd,
           projectEnv
         );
+
+        if (ghRes.status === 0) {
+          const addReviewerRes = runCmd(
+            "gh",
+            ["pr", "edit", currentBranch, "--add-reviewer", reviewer],
+            cwd,
+            projectEnv
+          );
+          if (addReviewerRes.status === 0) {
+            reviewerAssigned = true;
+          }
+        }
       }
+
+      const reviewerNotice = reviewerAssigned && reviewer ? `\n**Reviewer:** @${reviewer}` : "";
 
       if (ghRes.status === 0) {
         const prUrl =
