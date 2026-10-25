@@ -8,6 +8,7 @@ import { CycleHeader } from "./components/CycleHeader.js";
 import { DayDetailModal } from "./components/DayDetailModal.js";
 import { KeypadModal } from "./components/KeypadModal.js";
 import { QuickBar } from "./components/QuickBar.js";
+import { SettingsModal } from "./components/SettingsModal.js";
 import { I18nProvider } from "./i18n/index.js";
 import { TOKENS } from "./theme/tokens.js";
 import { computeCycleBudget, formatIsoDate } from "./utils/budgetEngine.js";
@@ -94,11 +95,12 @@ function getInitialTransactions(cycleId: string, startDateStr: string): SpendTra
 }
 
 function MainScreen() {
-  const [cycle] = useState<MoneyCycle>(getInitialCycle);
+  const [cycle, setCycle] = useState<MoneyCycle>(getInitialCycle);
   const [transactions, setTransactions] = useState<SpendTransaction[]>(() =>
     getInitialTransactions(cycle.id, cycle.startDate)
   );
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
   const [selectedDay, setSelectedDay] = useState<DailyAllocation | null>(null);
 
@@ -121,6 +123,20 @@ function MainScreen() {
     setIsKeypadOpen(false);
   }
 
+  function handleUpdateCycleSettings(settings: {
+    currency: string;
+    startDate: string;
+    endDate: string;
+  }) {
+    setCycle((prev) => ({
+      ...prev,
+      currency: settings.currency,
+      startDate: settings.startDate,
+      endDate: settings.endDate,
+      updatedAt: new Date().toISOString(),
+    }));
+  }
+
   const todayQuota = Math.floor(computation.dailyAllowance);
 
   return (
@@ -138,6 +154,7 @@ function MainScreen() {
             remainingBalance={computation.remainingBalance}
             remainingDaysCount={computation.remainingDaysCount}
             dailyAllowance={computation.dailyAllowance}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
 
           <CalendarGrid
@@ -168,6 +185,13 @@ function MainScreen() {
           mode={keypadMode}
           onClose={() => setIsKeypadOpen(false)}
           onConfirm={handleRecordTransaction}
+        />
+
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          cycle={cycle}
+          onClose={() => setIsSettingsOpen(false)}
+          onSave={handleUpdateCycleSettings}
         />
 
         <DayDetailModal

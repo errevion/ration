@@ -64,4 +64,18 @@ export const id: Translations = {
     sat: "S",
     sun: "M",
   },
+  settings: {
+    title: "Pengaturan",
+    language: "Bahasa",
+    currency: "Mata Uang",
+    customCurrency: "Simbol Kustom",
+    cycleDates: "Periode Siklus",
+    startDate: "Tanggal Mulai",
+    endDate: "Tanggal Selesai",
+    datePlaceholder: "YYYY-MM-DD",
+    calendarMonth: "Tgl 1 - Akhir Bulan",
+    paydayPeriod: "Tgl 25 - 24",
+    invalidDates: "Tanggal mulai harus sebelum tanggal selesai",
+    saveSettings: "Simpan Pengaturan",
+  },
 };

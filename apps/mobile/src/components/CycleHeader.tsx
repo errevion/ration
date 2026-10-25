@@ -1,4 +1,5 @@
 import type { MoneyCycle } from "@ration/types";
+import { Settings } from "lucide-react-native";
 import type React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useI18n } from "../i18n/index.js";
@@ -9,6 +10,7 @@ interface CycleHeaderProps {
   remainingBalance: number;
   remainingDaysCount: number;
   dailyAllowance: number;
+  onOpenSettings: () => void;
 }
 
 function formatDisplayDate(isoDate: string): string {
@@ -37,8 +39,9 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   remainingBalance,
   remainingDaysCount,
   dailyAllowance,
+  onOpenSettings,
 }) => {
-  const { t, locale, setLocale } = useI18n();
+  const { t } = useI18n();
 
   const formattedStart = formatDisplayDate(cycle.startDate);
   const formattedEnd = formatDisplayDate(cycle.endDate);
@@ -55,24 +58,14 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
       <View style={styles.topRow}>
         <Text style={styles.cycleRangeText}>{cycleRange}</Text>
 
-        <View style={styles.localeRow}>
-          <TouchableOpacity
-            style={[styles.localePill, locale === "en" && styles.localePillActive]}
-            onPress={() => setLocale("en")}
-          >
-            <Text style={[styles.localeText, locale === "en" && styles.localeTextActive]}>
-              {t("locale.english")}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.localePill, locale === "id" && styles.localePillActive]}
-            onPress={() => setLocale("id")}
-          >
-            <Text style={[styles.localeText, locale === "id" && styles.localeTextActive]}>
-              {t("locale.indonesian")}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onOpenSettings}
+          accessibilityLabel={t("settings.title")}
+          style={styles.settingsButton}
+        >
+          <Settings size={18} color={TOKENS.colors.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.balanceSection}>
@@ -105,29 +98,15 @@ const styles = StyleSheet.create({
     color: TOKENS.colors.textMuted,
     textTransform: "uppercase",
   },
-  localeRow: {
-    flexDirection: "row",
-    backgroundColor: TOKENS.colors.surfaceSubtle,
+  settingsButton: {
+    width: 36,
+    height: 36,
     borderRadius: TOKENS.radii.pill,
-    padding: 2,
+    backgroundColor: TOKENS.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: TOKENS.colors.borderSubtle,
-  },
-  localePill: {
-    paddingHorizontal: TOKENS.spacing.sm,
-    paddingVertical: 2,
-    borderRadius: TOKENS.radii.pill,
-  },
-  localePillActive: {
-    backgroundColor: TOKENS.colors.primary,
-  },
-  localeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: TOKENS.colors.textSecondary,
-  },
-  localeTextActive: {
-    color: TOKENS.colors.textOnPrimary,
+    justifyContent: "center",
+    alignItems: "center",
   },
   balanceSection: {
     marginTop: TOKENS.spacing.xs,
