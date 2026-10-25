@@ -62,6 +62,7 @@ function getInitialTransactions(cycleId: string, startDateStr: string): SpendTra
       cycleId,
       date: formatIsoDate(tx1Date),
       amount: 25,
+      type: "spend",
       createdAt: new Date().toISOString(),
     },
     {
@@ -69,6 +70,7 @@ function getInitialTransactions(cycleId: string, startDateStr: string): SpendTra
       cycleId,
       date: formatIsoDate(tx2Date),
       amount: 42,
+      type: "spend",
       createdAt: new Date().toISOString(),
     },
   ];
@@ -80,6 +82,7 @@ function TrackerApp() {
     getInitialTransactions(cycle.id, cycle.startDate)
   );
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
 
   const todayIso = formatIsoDate(new Date());
 
@@ -87,12 +90,13 @@ function TrackerApp() {
     return computeCycleBudget(cycle, transactions, todayIso);
   }, [cycle, transactions, todayIso]);
 
-  function handleRecordSpend(amount: number) {
+  function handleRecordTransaction(amount: number) {
     const newTx: SpendTransaction = {
       id: crypto.randomUUID(),
       cycleId: cycle.id,
       date: todayIso,
       amount,
+      type: keypadMode,
       createdAt: new Date().toISOString(),
     };
     setTransactions((prev) => [...prev, newTx]);
@@ -104,19 +108,23 @@ function TrackerApp() {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100dvh",
+        maxHeight: "100dvh",
         backgroundColor: "#000000",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+        overflow: "hidden",
+        touchAction: "manipulation",
       }}
     >
       <div
         style={{
           width: "100%",
           maxWidth: "430px",
-          minHeight: "100vh",
+          height: "100%",
+          maxHeight: "100dvh",
           backgroundColor: TOKENS.colors.canvas,
           display: "flex",
           flexDirection: "column",
@@ -132,6 +140,9 @@ function TrackerApp() {
             display: "flex",
             flexDirection: "column",
             gap: TOKENS.spacing.sm,
+            flex: 1,
+            overflowY: "auto",
+            overscrollBehavior: "contain",
           }}
         >
           <CycleHeader
@@ -152,14 +163,22 @@ function TrackerApp() {
           currency={cycle.currency}
           todayQuota={todayQuota}
           spentToday={computation.spentToday}
-          onOpenSpend={() => setIsKeypadOpen(true)}
+          onOpenAdd={() => {
+            setKeypadMode("income");
+            setIsKeypadOpen(true);
+          }}
+          onOpenSpend={() => {
+            setKeypadMode("spend");
+            setIsKeypadOpen(true);
+          }}
         />
 
         <KeypadDrawer
           isOpen={isKeypadOpen}
           currency={cycle.currency}
+          mode={keypadMode}
           onClose={() => setIsKeypadOpen(false)}
-          onConfirm={handleRecordSpend}
+          onConfirm={handleRecordTransaction}
         />
       </div>
     </div>

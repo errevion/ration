@@ -1,46 +1,181 @@
+import type { DailyAllocation, MoneyCycle, SpendTransaction } from "@ration/types";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { I18nProvider, useI18n } from "./i18n/index.js";
+import { useMemo, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { CalendarGrid } from "./components/CalendarGrid.js";
+import { CycleHeader } from "./components/CycleHeader.js";
+import { DayDetailModal } from "./components/DayDetailModal.js";
+import { KeypadModal } from "./components/KeypadModal.js";
+import { QuickBar } from "./components/QuickBar.js";
+import { I18nProvider } from "./i18n/index.js";
 import { TOKENS } from "./theme/tokens.js";
+import { computeCycleBudget, formatIsoDate } from "./utils/budgetEngine.js";
+
+function generateUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function getInitialCycle(): MoneyCycle {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const currentDay = now.getDate();
+
+  let startYear = year;
+  let startMonth = month;
+  if (currentDay < 25) {
+    startMonth = month - 1;
+    if (startMonth < 0) {
+      startMonth = 11;
+      startYear = year - 1;
+    }
+  }
+
+  let endYear = startYear;
+  let endMonth = startMonth + 1;
+  if (endMonth > 11) {
+    endMonth = 0;
+    endYear = startYear + 1;
+  }
+
+  const startDate = `${startYear}-${String(startMonth + 1).padStart(2, "0")}-25`;
+  const endDate = `${endYear}-${String(endMonth + 1).padStart(2, "0")}-24`;
+
+  return {
+    id: "c0000000-0000-0000-0000-000000000001",
+    name: "Monthly Pay Period",
+    startDate,
+    endDate,
+    startingBalance: 2000000,
+    currency: "Rp ",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getInitialTransactions(cycleId: string, startDateStr: string): SpendTransaction[] {
+  const [year, month, day] = startDateStr.split("-").map(Number);
+  const start = new Date(year, month - 1, day, 12, 0, 0);
+
+  const tx1Date = new Date(start);
+  tx1Date.setDate(tx1Date.getDate() + 1);
+
+  const tx2Date = new Date(start);
+  tx2Date.setDate(tx2Date.getDate() + 3);
+
+  return [
+    {
+      id: "d0000000-0000-0000-0000-000000000001",
+      cycleId,
+      date: formatIsoDate(tx1Date),
+      amount: 75000,
+      type: "spend",
+      notes: "Lunch",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "d0000000-0000-0000-0000-000000000002",
+      cycleId,
+      date: formatIsoDate(tx2Date),
+      amount: 150000,
+      type: "spend",
+      notes: "Transport",
+      createdAt: new Date().toISOString(),
+    },
+  ];
+}
 
 function MainScreen() {
-  const { t, locale, setLocale } = useI18n();
+  const [cycle] = useState<MoneyCycle>(getInitialCycle);
+  const [transactions, setTransactions] = useState<SpendTransaction[]>(() =>
+    getInitialTransactions(cycle.id, cycle.startDate)
+  );
+  const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
+  const [selectedDay, setSelectedDay] = useState<DailyAllocation | null>(null);
+
+  const todayIso = formatIsoDate(new Date());
+
+  const computation = useMemo(() => {
+    return computeCycleBudget(cycle, transactions, todayIso);
+  }, [cycle, transactions, todayIso]);
+
+  function handleRecordTransaction(amount: number) {
+    const newTx: SpendTransaction = {
+      id: generateUuid(),
+      cycleId: cycle.id,
+      date: todayIso,
+      amount,
+      type: keypadMode,
+      createdAt: new Date().toISOString(),
+    };
+    setTransactions((prev) => [...prev, newTx]);
+    setIsKeypadOpen(false);
+  }
+
+  const todayQuota = Math.floor(computation.dailyAllowance);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <View style={styles.container}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>{t("app.title")}</Text>
-            <Text style={styles.subtitle}>{t("app.subtitle")}</Text>
-          </View>
-          <View style={styles.localeRow}>
-            <TouchableOpacity
-              style={[styles.localePill, locale === "en" && styles.localePillActive]}
-              onPress={() => setLocale("en")}
-            >
-              <Text style={[styles.localeText, locale === "en" && styles.localeTextActive]}>
-                {t("locale.english")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.localePill, locale === "id" && styles.localePillActive]}
-              onPress={() => setLocale("id")}
-            >
-              <Text style={[styles.localeText, locale === "id" && styles.localeTextActive]}>
-                {t("locale.indonesian")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.scrollContent}
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+        >
+          <CycleHeader
+            cycle={cycle}
+            remainingBalance={computation.remainingBalance}
+            remainingDaysCount={computation.remainingDaysCount}
+            dailyAllowance={computation.dailyAllowance}
+          />
 
-        <View style={styles.content}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t("items.title")}</Text>
-            <Text style={styles.cardEmpty}>{t("items.empty")}</Text>
-          </View>
-        </View>
+          <CalendarGrid
+            days={computation.cycleDays}
+            leadingEmptyDays={computation.leadingEmptyDays}
+            trailingEmptyDays={computation.trailingEmptyDays}
+            onSelectDay={setSelectedDay}
+          />
+        </ScrollView>
+
+        <QuickBar
+          currency={cycle.currency}
+          todayQuota={todayQuota}
+          spentToday={computation.spentToday}
+          onOpenAdd={() => {
+            setKeypadMode("income");
+            setIsKeypadOpen(true);
+          }}
+          onOpenSpend={() => {
+            setKeypadMode("spend");
+            setIsKeypadOpen(true);
+          }}
+        />
+
+        <KeypadModal
+          isOpen={isKeypadOpen}
+          currency={cycle.currency}
+          mode={keypadMode}
+          onClose={() => setIsKeypadOpen(false)}
+          onConfirm={handleRecordTransaction}
+        />
+
+        <DayDetailModal
+          day={selectedDay}
+          currency={cycle.currency}
+          transactions={transactions}
+          onClose={() => setSelectedDay(null)}
+        />
       </View>
     </SafeAreaView>
   );
@@ -48,9 +183,11 @@ function MainScreen() {
 
 export default function App() {
   return (
-    <I18nProvider>
-      <MainScreen />
-    </I18nProvider>
+    <SafeAreaProvider>
+      <I18nProvider>
+        <MainScreen />
+      </I18nProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -61,66 +198,15 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: TOKENS.spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
+    backgroundColor: TOKENS.colors.canvas,
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: TOKENS.spacing.xl,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: TOKENS.colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: TOKENS.colors.textSecondary,
-    marginTop: TOKENS.spacing.xs,
-  },
-  localeRow: {
-    flexDirection: "row",
-    backgroundColor: TOKENS.colors.surfaceSubtle,
-    borderRadius: TOKENS.radii.pill,
-    padding: 2,
-    borderWidth: 1,
-    borderColor: TOKENS.colors.borderSubtle,
-  },
-  localePill: {
-    paddingHorizontal: TOKENS.spacing.md,
-    paddingVertical: TOKENS.spacing.xs,
-    borderRadius: TOKENS.radii.pill,
-  },
-  localePillActive: {
-    backgroundColor: TOKENS.colors.surface,
-  },
-  localeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: TOKENS.colors.textSecondary,
-  },
-  localeTextActive: {
-    color: TOKENS.colors.primary,
-  },
-  content: {
+  scrollArea: {
     flex: 1,
   },
-  card: {
-    backgroundColor: TOKENS.colors.surface,
-    borderRadius: TOKENS.radii.card,
-    padding: TOKENS.spacing.lg,
-    borderWidth: 1,
-    borderColor: TOKENS.colors.border,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: TOKENS.colors.textPrimary,
-    marginBottom: TOKENS.spacing.sm,
-  },
-  cardEmpty: {
-    fontSize: 14,
-    color: TOKENS.colors.textMuted,
+  scrollContent: {
+    paddingHorizontal: TOKENS.spacing.lg,
+    paddingTop: TOKENS.spacing.md,
+    paddingBottom: TOKENS.spacing.sm,
   },
 });

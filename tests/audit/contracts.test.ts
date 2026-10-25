@@ -149,6 +149,23 @@ describe("Domain Audit: Contract & Schema Parity", () => {
     };
     expect(CreateSpendTransactionSchema.safeParse(validCreate).success).toBe(true);
 
+    const validIncome = {
+      ...validSpend,
+      type: "income",
+      notes: "Freelance top up",
+    };
+    const parsedIncome = SpendTransactionSchema.safeParse(validIncome);
+    expect(parsedIncome.success).toBe(true);
+    if (parsedIncome.success) {
+      expect(parsedIncome.data.type).toBe("income");
+    }
+
+    const invalidType = {
+      ...validSpend,
+      type: "transfer",
+    };
+    expect(SpendTransactionSchema.safeParse(invalidType).success).toBe(false);
+
     const zeroSpend = {
       ...validSpend,
       amount: 0,

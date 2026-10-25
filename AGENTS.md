@@ -59,6 +59,7 @@ Before planning or writing any code, consult this inventory:
 - `RationItemSchema`, `CreateRationItemSchema`, `UpdateRationItemSchema`, `type RationItem`, `type CreateRationItemDto`
 - `DistributionRecordSchema`, `CreateDistributionRecordSchema`, `type DistributionRecord`, `type CreateDistributionRecordDto`
 - `MoneyCycleSchema`, `CreateMoneyCycleSchema`, `type MoneyCycle`, `type CreateMoneyCycleDto`
+- `TransactionTypeSchema`, `type TransactionType` (`spend`, `income`)
 - `SpendTransactionSchema`, `CreateSpendTransactionSchema`, `type SpendTransaction`, `type CreateSpendTransactionDto`
 - `DailyAllocationSchema`, `type DailyAllocation`
 
