@@ -56,6 +56,7 @@ ration/
 │   └── settings.json              # Pi configuration (pi-open-tui, Tokyo Night)
 ├── apps/
 │   ├── mobile/                    # Expo React Native mobile client
+│   │   ├── assets/                # App icons, splash screens, and adaptive drawables
 │   │   ├── src/
 │   │   │   ├── components/        # Mobile UI components (CalendarGrid, CycleHeader, KeypadModal, etc.)
 │   │   │   ├── i18n/              # Mobile localization dictionary & hook
@@ -76,6 +77,7 @@ ration/
 │   └── types/                     # Shared Zod schemas & domain types
 │       └── src/index.ts
 ├── scripts/
+│   ├── generate-assets.js         # Mobile launcher icon and splash PNG asset generator
 │   └── verify-invariants.js       # Architectural invariant validator
 ├── tests/
 │   └── audit/                     # Domain forensic audit test suites
