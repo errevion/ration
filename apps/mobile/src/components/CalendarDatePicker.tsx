@@ -2,8 +2,8 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react-native";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useI18n } from "../i18n/index.js";
-import { TOKENS } from "../theme/tokens.js";
+import { useI18n } from "../i18n";
+import { TOKENS } from "../theme/tokens";
 
 interface CalendarDatePickerProps {
   isOpen: boolean;
