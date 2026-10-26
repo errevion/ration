@@ -135,6 +135,7 @@ describe("Domain Audit: Contract & Schema Parity", () => {
       currency: "Rp ",
       startDate: "2025-10-25",
       endDate: "2025-11-24",
+      referenceDate: "2025-10-28",
     };
     expect(UpdateCycleSettingsSchema.safeParse(validUpdateSettings).success).toBe(true);
 

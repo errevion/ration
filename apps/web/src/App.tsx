@@ -1,7 +1,8 @@
-import type { MoneyCycle, SpendTransaction } from "@ration/types";
+import type { DailyAllocation, MoneyCycle, SpendTransaction } from "@ration/types";
 import { useMemo, useState } from "react";
 import { CalendarGrid } from "./components/CalendarGrid.js";
 import { CycleHeader } from "./components/CycleHeader.js";
+import { DayDetailDrawer } from "./components/DayDetailDrawer.js";
 import { KeypadDrawer } from "./components/KeypadDrawer.js";
 import { QuickBar } from "./components/QuickBar.js";
 import { SettingsDrawer } from "./components/SettingsDrawer.js";
@@ -82,21 +83,21 @@ function TrackerApp() {
   const [transactions, setTransactions] = useState<SpendTransaction[]>(() =>
     getInitialTransactions(cycle.id, cycle.startDate)
   );
+  const [referenceDate, setReferenceDate] = useState<string>(() => formatIsoDate(new Date()));
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
-
-  const todayIso = formatIsoDate(new Date());
+  const [selectedDay, setSelectedDay] = useState<DailyAllocation | null>(null);
 
   const computation = useMemo(() => {
-    return computeCycleBudget(cycle, transactions, todayIso);
-  }, [cycle, transactions, todayIso]);
+    return computeCycleBudget(cycle, transactions, referenceDate);
+  }, [cycle, transactions, referenceDate]);
 
   function handleRecordTransaction(amount: number) {
     const newTx: SpendTransaction = {
       id: crypto.randomUUID(),
       cycleId: cycle.id,
-      date: todayIso,
+      date: referenceDate,
       amount,
       type: keypadMode,
       createdAt: new Date().toISOString(),
@@ -109,6 +110,7 @@ function TrackerApp() {
     currency: string;
     startDate: string;
     endDate: string;
+    referenceDate?: string;
   }) {
     setCycle((prev) => ({
       ...prev,
@@ -117,6 +119,9 @@ function TrackerApp() {
       endDate: settings.endDate,
       updatedAt: new Date().toISOString(),
     }));
+    if (settings.referenceDate) {
+      setReferenceDate(settings.referenceDate);
+    }
   }
 
   const todayQuota = Math.floor(computation.dailyAllowance);
@@ -173,6 +178,7 @@ function TrackerApp() {
             days={computation.cycleDays}
             leadingEmptyDays={computation.leadingEmptyDays}
             trailingEmptyDays={computation.trailingEmptyDays}
+            onSelectDay={setSelectedDay}
           />
         </div>
 
@@ -201,8 +207,16 @@ function TrackerApp() {
         <SettingsDrawer
           isOpen={isSettingsOpen}
           cycle={cycle}
+          referenceDate={referenceDate}
           onClose={() => setIsSettingsOpen(false)}
           onSave={handleUpdateCycleSettings}
+        />
+
+        <DayDetailDrawer
+          day={selectedDay}
+          currency={cycle.currency}
+          transactions={transactions}
+          onClose={() => setSelectedDay(null)}
         />
       </div>
     </div>

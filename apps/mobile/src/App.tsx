@@ -99,22 +99,21 @@ function MainScreen() {
   const [transactions, setTransactions] = useState<SpendTransaction[]>(() =>
     getInitialTransactions(cycle.id, cycle.startDate)
   );
+  const [referenceDate, setReferenceDate] = useState<string>(() => formatIsoDate(new Date()));
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
   const [selectedDay, setSelectedDay] = useState<DailyAllocation | null>(null);
 
-  const todayIso = formatIsoDate(new Date());
-
   const computation = useMemo(() => {
-    return computeCycleBudget(cycle, transactions, todayIso);
-  }, [cycle, transactions, todayIso]);
+    return computeCycleBudget(cycle, transactions, referenceDate);
+  }, [cycle, transactions, referenceDate]);
 
   function handleRecordTransaction(amount: number) {
     const newTx: SpendTransaction = {
       id: generateUuid(),
       cycleId: cycle.id,
-      date: todayIso,
+      date: referenceDate,
       amount,
       type: keypadMode,
       createdAt: new Date().toISOString(),
@@ -127,6 +126,7 @@ function MainScreen() {
     currency: string;
     startDate: string;
     endDate: string;
+    referenceDate?: string;
   }) {
     setCycle((prev) => ({
       ...prev,
@@ -135,6 +135,9 @@ function MainScreen() {
       endDate: settings.endDate,
       updatedAt: new Date().toISOString(),
     }));
+    if (settings.referenceDate) {
+      setReferenceDate(settings.referenceDate);
+    }
   }
 
   const todayQuota = Math.floor(computation.dailyAllowance);
@@ -190,6 +193,7 @@ function MainScreen() {
         <SettingsModal
           isOpen={isSettingsOpen}
           cycle={cycle}
+          referenceDate={referenceDate}
           onClose={() => setIsSettingsOpen(false)}
           onSave={handleUpdateCycleSettings}
         />

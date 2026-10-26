@@ -77,5 +77,12 @@ export const id: Translations = {
     paydayPeriod: "Tgl 25 - 24",
     invalidDates: "Tanggal mulai harus sebelum tanggal selesai",
     saveSettings: "Simpan Pengaturan",
+    currentDate: "Tanggal Hari Ini (Uji Coba)",
+    resetDate: "Reset ke Hari Ini",
+    pickDate: "Pilih Tanggal",
+    selectDate: "Pilih Tanggal",
+    selectStartDate: "Pilih Tanggal Mulai",
+    selectEndDate: "Pilih Tanggal Selesai",
+    selectCurrentDate: "Pilih Tanggal Hari Ini",
   },
 };

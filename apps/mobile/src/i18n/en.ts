@@ -75,6 +75,13 @@ export const en = {
     paydayPeriod: "25th - 24th",
     invalidDates: "Start date must be before end date",
     saveSettings: "Save Settings",
+    currentDate: "Current Date (Testing)",
+    resetDate: "Reset to Today",
+    pickDate: "Pick Date",
+    selectDate: "Select Date",
+    selectStartDate: "Select Start Date",
+    selectEndDate: "Select End Date",
+    selectCurrentDate: "Select Current Date",
   },
 } as const;
 

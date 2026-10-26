@@ -96,8 +96,6 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, val, onClose, onConfirm, handleDelete, handleDigit, handleDot]);
 
-  if (!isOpen) return null;
-
   const numericValue = Number.parseFloat(val);
   const isValid = !Number.isNaN(numericValue) && numericValue > 0;
 
@@ -117,6 +115,10 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
         justifyContent: "flex-end",
         alignItems: "center",
         zIndex: 1000,
+        opacity: isOpen ? 1 : 0,
+        pointerEvents: isOpen ? "auto" : "none",
+        transition: "opacity 0.25s ease-out",
+        overflow: "hidden",
       }}
     >
       <div
@@ -132,6 +134,9 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
           display: "flex",
           flexDirection: "column",
           gap: TOKENS.spacing.md,
+          overflowX: "hidden",
+          transform: isOpen ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
         <div
