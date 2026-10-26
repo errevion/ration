@@ -9,6 +9,7 @@ import {
   MoneyCycleSchema,
   RationItemSchema,
   SpendTransactionSchema,
+  UpdateCycleSettingsSchema,
   UserRoleSchema,
 } from "@ration/types";
 import { describe, expect, it } from "vitest";
@@ -129,6 +130,26 @@ describe("Domain Audit: Contract & Schema Parity", () => {
       startingBalance: -50,
     };
     expect(MoneyCycleSchema.safeParse(negativeBalance).success).toBe(false);
+
+    const validUpdateSettings = {
+      currency: "Rp ",
+      startDate: "2025-10-25",
+      endDate: "2025-11-24",
+      referenceDate: "2025-10-28",
+    };
+    expect(UpdateCycleSettingsSchema.safeParse(validUpdateSettings).success).toBe(true);
+
+    const invalidSettingsDate = {
+      ...validUpdateSettings,
+      startDate: "invalid-date",
+    };
+    expect(UpdateCycleSettingsSchema.safeParse(invalidSettingsDate).success).toBe(false);
+
+    const emptyCurrency = {
+      ...validUpdateSettings,
+      currency: "",
+    };
+    expect(UpdateCycleSettingsSchema.safeParse(emptyCurrency).success).toBe(false);
   });
 
   it("validates spend transaction schema and rejects non-positive amounts", () => {

@@ -1,4 +1,5 @@
 import type { MoneyCycle } from "@ration/types";
+import { Settings } from "lucide-react";
 import type React from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
@@ -8,6 +9,7 @@ interface CycleHeaderProps {
   remainingBalance: number;
   remainingDaysCount: number;
   dailyAllowance: number;
+  onOpenSettings: () => void;
 }
 
 function formatDisplayDate(isoDate: string): string {
@@ -36,8 +38,9 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   remainingBalance,
   remainingDaysCount,
   dailyAllowance,
+  onOpenSettings,
 }) => {
-  const { t, locale, setLocale } = useI18n();
+  const { t } = useI18n();
 
   const formattedStart = formatDisplayDate(cycle.startDate);
   const formattedEnd = formatDisplayDate(cycle.endDate);
@@ -77,48 +80,26 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
           {cycleRange}
         </span>
 
-        <div
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          aria-label={t("settings.title")}
           style={{
-            display: "flex",
-            backgroundColor: TOKENS.colors.surfaceSubtle,
+            width: "36px",
+            height: "36px",
             borderRadius: TOKENS.radii.pill,
-            padding: "2px",
+            backgroundColor: TOKENS.colors.surfaceElevated,
             border: `1px solid ${TOKENS.colors.borderSubtle}`,
+            color: TOKENS.colors.textSecondary,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            padding: 0,
           }}
         >
-          <button
-            type="button"
-            onClick={() => setLocale("en")}
-            style={{
-              padding: `2px ${TOKENS.spacing.sm}`,
-              borderRadius: TOKENS.radii.pill,
-              border: "none",
-              backgroundColor: locale === "en" ? TOKENS.colors.primary : "transparent",
-              color: locale === "en" ? TOKENS.colors.textOnPrimary : TOKENS.colors.textSecondary,
-              fontWeight: 700,
-              fontSize: "11px",
-              cursor: "pointer",
-            }}
-          >
-            {t("locale.english")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setLocale("id")}
-            style={{
-              padding: `2px ${TOKENS.spacing.sm}`,
-              borderRadius: TOKENS.radii.pill,
-              border: "none",
-              backgroundColor: locale === "id" ? TOKENS.colors.primary : "transparent",
-              color: locale === "id" ? TOKENS.colors.textOnPrimary : TOKENS.colors.textSecondary,
-              fontWeight: 700,
-              fontSize: "11px",
-              cursor: "pointer",
-            }}
-          >
-            {t("locale.indonesian")}
-          </button>
-        </div>
+          <Settings size={18} />
+        </button>
       </div>
 
       <div>

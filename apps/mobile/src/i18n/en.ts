@@ -62,6 +62,27 @@ export const en = {
     sat: "S",
     sun: "S",
   },
+  settings: {
+    title: "Settings",
+    language: "Language",
+    currency: "Currency",
+    customCurrency: "Custom Symbol",
+    cycleDates: "Cycle Dates",
+    startDate: "Start Date",
+    endDate: "End Date",
+    datePlaceholder: "YYYY-MM-DD",
+    calendarMonth: "1st - End of Month",
+    paydayPeriod: "25th - 24th",
+    invalidDates: "Start date must be before end date",
+    saveSettings: "Save Settings",
+    currentDate: "Current Date (Testing)",
+    resetDate: "Reset to Today",
+    pickDate: "Pick Date",
+    selectDate: "Select Date",
+    selectStartDate: "Select Start Date",
+    selectEndDate: "Select End Date",
+    selectCurrentDate: "Select Current Date",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof en;
