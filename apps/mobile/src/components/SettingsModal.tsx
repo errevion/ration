@@ -1,5 +1,5 @@
 import type { MoneyCycle } from "@ration/types";
-import { X } from "lucide-react-native";
+import { Calendar, RotateCcw, X } from "lucide-react-native";
 import type React from "react";
 import { useEffect, useState } from "react";
 import {
@@ -13,12 +13,20 @@ import {
 } from "react-native";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
+import { formatIsoDate } from "../utils/budgetEngine.js";
+import { CalendarDatePicker } from "./CalendarDatePicker.js";
 
 interface SettingsModalProps {
   isOpen: boolean;
   cycle: MoneyCycle;
+  referenceDate: string;
   onClose: () => void;
-  onSave: (settings: { currency: string; startDate: string; endDate: string }) => void;
+  onSave: (settings: {
+    currency: string;
+    startDate: string;
+    endDate: string;
+    referenceDate?: string;
+  }) => void;
 }
 
 const CURRENCY_PRESETS = ["Rp ", "$", "€", "£", "S$", "¥"];
@@ -61,20 +69,33 @@ function getPaydayPeriodPreset(): { startDate: string; endDate: string } {
   return { startDate, endDate };
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, cycle, onClose, onSave }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  isOpen,
+  cycle,
+  referenceDate,
+  onClose,
+  onSave,
+}) => {
   const { t, locale, setLocale } = useI18n();
 
   const [currency, setCurrency] = useState(cycle.currency);
   const [startDate, setStartDate] = useState(cycle.startDate);
   const [endDate, setEndDate] = useState(cycle.endDate);
+  const [activeRefDate, setActiveRefDate] = useState(referenceDate);
+
+  const [activePickerTarget, setActivePickerTarget] = useState<"start" | "end" | "current" | null>(
+    null
+  );
 
   useEffect(() => {
     if (isOpen) {
       setCurrency(cycle.currency);
       setStartDate(cycle.startDate);
       setEndDate(cycle.endDate);
+      setActiveRefDate(referenceDate);
+      setActivePickerTarget(null);
     }
-  }, [isOpen, cycle]);
+  }, [isOpen, cycle, referenceDate]);
 
   const isDatePatternValid =
     /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate);
@@ -88,6 +109,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, cycle, onC
       currency,
       startDate,
       endDate,
+      referenceDate: activeRefDate,
     });
     onClose();
   }
@@ -104,151 +126,209 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, cycle, onC
     setEndDate(preset.endDate);
   }
 
+  function handleResetCurrentDate() {
+    setActiveRefDate(formatIsoDate(new Date()));
+  }
+
   return (
-    <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{t("settings.title")}</Text>
+    <>
+      <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
+        <View style={styles.backdrop}>
+          <View style={styles.sheet}>
+            <View style={styles.header}>
+              <Text style={styles.title}>{t("settings.title")}</Text>
+              <TouchableOpacity
+                onPress={onClose}
+                accessibilityLabel={t("tracker.close")}
+                style={styles.closeButton}
+              >
+                <X size={20} color={TOKENS.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t("settings.language")}</Text>
+                <View style={styles.languageRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[styles.languagePill, locale === "en" && styles.languagePillActive]}
+                    onPress={() => setLocale("en")}
+                  >
+                    <Text
+                      style={[styles.languageText, locale === "en" && styles.languageTextActive]}
+                    >
+                      {t("locale.english")}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={[styles.languagePill, locale === "id" && styles.languagePillActive]}
+                    onPress={() => setLocale("id")}
+                  >
+                    <Text
+                      style={[styles.languageText, locale === "id" && styles.languageTextActive]}
+                    >
+                      {t("locale.indonesian")}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t("settings.currency")}</Text>
+                <View style={styles.currencyRow}>
+                  {CURRENCY_PRESETS.map((preset) => {
+                    const isSelected = currency === preset;
+                    return (
+                      <TouchableOpacity
+                        key={preset}
+                        activeOpacity={0.7}
+                        style={[styles.currencyChip, isSelected && styles.currencyChipActive]}
+                        onPress={() => setCurrency(preset)}
+                      >
+                        <Text
+                          style={[
+                            styles.currencyChipText,
+                            isSelected && styles.currencyChipTextActive,
+                          ]}
+                        >
+                          {preset.trim()}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <TextInput
+                  value={currency}
+                  onChangeText={setCurrency}
+                  placeholder={t("settings.customCurrency")}
+                  placeholderTextColor={TOKENS.colors.textMuted}
+                  maxLength={8}
+                  style={styles.textInput}
+                />
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t("settings.cycleDates")}</Text>
+
+                <View style={styles.presetsRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={styles.presetButton}
+                    onPress={handleApplyCalendarMonth}
+                  >
+                    <Text style={styles.presetButtonText}>{t("settings.calendarMonth")}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={styles.presetButton}
+                    onPress={handleApplyPaydayPeriod}
+                  >
+                    <Text style={styles.presetButtonText}>{t("settings.paydayPeriod")}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.dateInputsRow}>
+                  <View style={styles.dateField}>
+                    <Text style={styles.fieldLabel}>{t("settings.startDate")}</Text>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={styles.dateButton}
+                      onPress={() => setActivePickerTarget("start")}
+                    >
+                      <Text style={styles.dateButtonText}>{startDate}</Text>
+                      <Calendar size={16} color={TOKENS.colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.dateField}>
+                    <Text style={styles.fieldLabel}>{t("settings.endDate")}</Text>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={styles.dateButton}
+                      onPress={() => setActivePickerTarget("end")}
+                    >
+                      <Text style={styles.dateButtonText}>{endDate}</Text>
+                      <Calendar size={16} color={TOKENS.colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {!isDateOrderValid && (
+                  <Text style={styles.errorText}>{t("settings.invalidDates")}</Text>
+                )}
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t("settings.currentDate")}</Text>
+                <View style={styles.currentDateRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={styles.currentDateButton}
+                    onPress={() => setActivePickerTarget("current")}
+                  >
+                    <Text style={styles.dateButtonText}>{activeRefDate}</Text>
+                    <Calendar size={16} color={TOKENS.colors.textMuted} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={styles.resetButton}
+                    onPress={handleResetCurrentDate}
+                    accessibilityLabel={t("settings.resetDate")}
+                  >
+                    <RotateCcw size={14} color={TOKENS.colors.textSecondary} />
+                    <Text style={styles.resetButtonText}>{t("settings.resetDate")}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+
             <TouchableOpacity
-              onPress={onClose}
-              accessibilityLabel={t("tracker.close")}
-              style={styles.closeButton}
+              activeOpacity={0.8}
+              disabled={!isValid}
+              style={[
+                styles.saveButton,
+                isValid ? styles.saveButtonActive : styles.saveButtonDisabled,
+              ]}
+              onPress={handleSave}
             >
-              <X size={20} color={TOKENS.colors.textSecondary} />
+              <Text
+                style={[styles.saveText, isValid ? styles.saveTextActive : styles.saveTextDisabled]}
+              >
+                {t("settings.saveSettings")}
+              </Text>
             </TouchableOpacity>
           </View>
-
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t("settings.language")}</Text>
-              <View style={styles.languageRow}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={[styles.languagePill, locale === "en" && styles.languagePillActive]}
-                  onPress={() => setLocale("en")}
-                >
-                  <Text style={[styles.languageText, locale === "en" && styles.languageTextActive]}>
-                    {t("locale.english")}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={[styles.languagePill, locale === "id" && styles.languagePillActive]}
-                  onPress={() => setLocale("id")}
-                >
-                  <Text style={[styles.languageText, locale === "id" && styles.languageTextActive]}>
-                    {t("locale.indonesian")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t("settings.currency")}</Text>
-              <View style={styles.currencyRow}>
-                {CURRENCY_PRESETS.map((preset) => {
-                  const isSelected = currency === preset;
-                  return (
-                    <TouchableOpacity
-                      key={preset}
-                      activeOpacity={0.7}
-                      style={[styles.currencyChip, isSelected && styles.currencyChipActive]}
-                      onPress={() => setCurrency(preset)}
-                    >
-                      <Text
-                        style={[
-                          styles.currencyChipText,
-                          isSelected && styles.currencyChipTextActive,
-                        ]}
-                      >
-                        {preset.trim()}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <TextInput
-                value={currency}
-                onChangeText={setCurrency}
-                placeholder={t("settings.customCurrency")}
-                placeholderTextColor={TOKENS.colors.textMuted}
-                maxLength={8}
-                style={styles.textInput}
-              />
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t("settings.cycleDates")}</Text>
-
-              <View style={styles.presetsRow}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={styles.presetButton}
-                  onPress={handleApplyCalendarMonth}
-                >
-                  <Text style={styles.presetButtonText}>{t("settings.calendarMonth")}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={styles.presetButton}
-                  onPress={handleApplyPaydayPeriod}
-                >
-                  <Text style={styles.presetButtonText}>{t("settings.paydayPeriod")}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.dateInputsRow}>
-                <View style={styles.dateField}>
-                  <Text style={styles.fieldLabel}>{t("settings.startDate")}</Text>
-                  <TextInput
-                    value={startDate}
-                    onChangeText={setStartDate}
-                    placeholder={t("settings.datePlaceholder")}
-                    placeholderTextColor={TOKENS.colors.textMuted}
-                    maxLength={10}
-                    style={styles.dateInput}
-                  />
-                </View>
-
-                <View style={styles.dateField}>
-                  <Text style={styles.fieldLabel}>{t("settings.endDate")}</Text>
-                  <TextInput
-                    value={endDate}
-                    onChangeText={setEndDate}
-                    placeholder={t("settings.datePlaceholder")}
-                    placeholderTextColor={TOKENS.colors.textMuted}
-                    maxLength={10}
-                    style={styles.dateInput}
-                  />
-                </View>
-              </View>
-
-              {!isDateOrderValid && (
-                <Text style={styles.errorText}>{t("settings.invalidDates")}</Text>
-              )}
-            </View>
-          </ScrollView>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            disabled={!isValid}
-            style={[
-              styles.saveButton,
-              isValid ? styles.saveButtonActive : styles.saveButtonDisabled,
-            ]}
-            onPress={handleSave}
-          >
-            <Text
-              style={[styles.saveText, isValid ? styles.saveTextActive : styles.saveTextDisabled]}
-            >
-              {t("settings.saveSettings")}
-            </Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <CalendarDatePicker
+        isOpen={activePickerTarget === "start"}
+        title={t("settings.selectStartDate")}
+        selectedDate={startDate}
+        onSelectDate={(date) => setStartDate(date)}
+        onClose={() => setActivePickerTarget(null)}
+      />
+
+      <CalendarDatePicker
+        isOpen={activePickerTarget === "end"}
+        title={t("settings.selectEndDate")}
+        selectedDate={endDate}
+        onSelectDate={(date) => setEndDate(date)}
+        onClose={() => setActivePickerTarget(null)}
+      />
+
+      <CalendarDatePicker
+        isOpen={activePickerTarget === "current"}
+        title={t("settings.selectCurrentDate")}
+        selectedDate={activeRefDate}
+        onSelectDate={(date) => setActiveRefDate(date)}
+        onClose={() => setActivePickerTarget(null)}
+      />
+    </>
   );
 };
 
@@ -388,21 +468,59 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: TOKENS.colors.textMuted,
   },
-  dateInput: {
+  dateButton: {
     height: 44,
     backgroundColor: TOKENS.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: TOKENS.colors.borderSubtle,
     borderRadius: TOKENS.radii.md,
     paddingHorizontal: TOKENS.spacing.md,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dateButtonText: {
     color: TOKENS.colors.textPrimary,
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   errorText: {
     fontSize: 12,
     color: TOKENS.colors.danger,
     marginTop: 2,
+  },
+  currentDateRow: {
+    flexDirection: "row",
+    gap: TOKENS.spacing.xs,
+    alignItems: "center",
+  },
+  currentDateButton: {
+    flex: 1,
+    height: 44,
+    backgroundColor: TOKENS.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    borderRadius: TOKENS.radii.md,
+    paddingHorizontal: TOKENS.spacing.md,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  resetButton: {
+    height: 44,
+    paddingHorizontal: TOKENS.spacing.md,
+    backgroundColor: TOKENS.colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    borderRadius: TOKENS.radii.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  resetButtonText: {
+    color: TOKENS.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
   },
   saveButton: {
     height: 48,
