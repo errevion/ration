@@ -41,48 +41,20 @@ function getInitialCycle(): MoneyCycle {
     name: "Monthly Pay Period",
     startDate,
     endDate,
-    startingBalance: 900,
+    startingBalance: 0,
     currency: "$",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 }
 
-function getInitialTransactions(cycleId: string, startDateStr: string): SpendTransaction[] {
-  const [year, month, day] = startDateStr.split("-").map(Number);
-  const start = new Date(year, month - 1, day, 12, 0, 0);
-
-  const tx1Date = new Date(start);
-  tx1Date.setDate(tx1Date.getDate() + 1);
-
-  const tx2Date = new Date(start);
-  tx2Date.setDate(tx2Date.getDate() + 3);
-
-  return [
-    {
-      id: "d0000000-0000-0000-0000-000000000001",
-      cycleId,
-      date: formatIsoDate(tx1Date),
-      amount: 25,
-      type: "spend",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "d0000000-0000-0000-0000-000000000002",
-      cycleId,
-      date: formatIsoDate(tx2Date),
-      amount: 42,
-      type: "spend",
-      createdAt: new Date().toISOString(),
-    },
-  ];
+function getInitialTransactions(): SpendTransaction[] {
+  return [];
 }
 
 function TrackerApp() {
   const [cycle, setCycle] = useState<MoneyCycle>(getInitialCycle);
-  const [transactions, setTransactions] = useState<SpendTransaction[]>(() =>
-    getInitialTransactions(cycle.id, cycle.startDate)
-  );
+  const [transactions, setTransactions] = useState<SpendTransaction[]>(getInitialTransactions);
   const [referenceDate, setReferenceDate] = useState<string>(() => formatIsoDate(new Date()));
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);

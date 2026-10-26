@@ -1,7 +1,7 @@
 import { Delete, X } from "lucide-react-native";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useI18n } from "../i18n";
 import { TOKENS } from "../theme/tokens";
 
@@ -22,12 +22,39 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
 }) => {
   const { t } = useI18n();
   const [val, setVal] = useState("0");
+  const [visible, setVisible] = useState(isOpen);
+  const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isOpen) {
       setVal("0");
+      setVisible(true);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 240,
+        useNativeDriver: true,
+      }).start();
+    } else if (visible) {
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => {
+        setVisible(false);
+      });
     }
-  }, [isOpen]);
+  }, [anim, isOpen, visible]);
+
+  const handleDismiss = useCallback(() => {
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
+      setVisible(false);
+      onClose();
+    });
+  }, [anim, onClose]);
 
   const handleDigit = useCallback((digit: string) => {
     setVal((prev) => {
@@ -69,6 +96,7 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
   function handleConfirm() {
     const parsed = Number.parseFloat(val);
     if (parsed > 0) {
+      handleDismiss();
       onConfirm(parsed);
     }
   }
@@ -77,14 +105,31 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
   const isValid = !Number.isNaN(numericValue) && numericValue > 0;
   const modalTitle = mode === "income" ? t("tracker.addTitle") : t("tracker.keypadTitle");
 
+  if (!visible) return null;
+
+  const backdropOpacity = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  const sheetTranslateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [450, 0],
+  });
+
   return (
-    <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={handleDismiss}>
+      <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={StyleSheet.absoluteFill}
+          onPress={handleDismiss}
+        />
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>{modalTitle}</Text>
             <TouchableOpacity
-              onPress={onClose}
+              onPress={handleDismiss}
               accessibilityLabel={t("tracker.close")}
               style={styles.closeButton}
             >
@@ -162,8 +207,8 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 };
