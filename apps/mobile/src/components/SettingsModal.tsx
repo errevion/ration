@@ -11,10 +11,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useI18n } from "../i18n/index.js";
-import { TOKENS } from "../theme/tokens.js";
-import { formatIsoDate } from "../utils/budgetEngine.js";
-import { CalendarDatePicker } from "./CalendarDatePicker.js";
+import { useI18n } from "../i18n";
+import { TOKENS } from "../theme/tokens";
+import { formatIsoDate } from "../utils/budgetEngine";
+import { CalendarDatePicker } from "./CalendarDatePicker";
 
 interface SettingsModalProps {
   isOpen: boolean;

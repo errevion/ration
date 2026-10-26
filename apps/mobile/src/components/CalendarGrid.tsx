@@ -1,9 +1,9 @@
 import type { DailyAllocation } from "@ration/types";
 import type React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useI18n } from "../i18n/index.js";
-import { TOKENS } from "../theme/tokens.js";
-import { formatMetricAmount } from "../utils/formatters.js";
+import { useI18n } from "../i18n";
+import { TOKENS } from "../theme/tokens";
+import { formatMetricAmount } from "../utils/formatters";
 
 interface CalendarGridProps {
   days: DailyAllocation[];
