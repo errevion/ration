@@ -2,9 +2,9 @@ import type { DailyAllocation, SpendTransaction } from "@ration/types";
 import { X } from "lucide-react-native";
 import type React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useI18n } from "../i18n/index.js";
-import { TOKENS } from "../theme/tokens.js";
-import { formatCurrency } from "../utils/formatters.js";
+import { useI18n } from "../i18n";
+import { TOKENS } from "../theme/tokens";
+import { formatCurrency } from "../utils/formatters";
 
 interface DayDetailModalProps {
   day: DailyAllocation | null;

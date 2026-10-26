@@ -1,17 +1,18 @@
 import type { DailyAllocation, MoneyCycle, SpendTransaction } from "@ration/types";
+import { registerRootComponent } from "expo";
 import { StatusBar } from "expo-status-bar";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { CalendarGrid } from "./components/CalendarGrid.js";
-import { CycleHeader } from "./components/CycleHeader.js";
-import { DayDetailModal } from "./components/DayDetailModal.js";
-import { KeypadModal } from "./components/KeypadModal.js";
-import { QuickBar } from "./components/QuickBar.js";
-import { SettingsModal } from "./components/SettingsModal.js";
-import { I18nProvider } from "./i18n/index.js";
-import { TOKENS } from "./theme/tokens.js";
-import { computeCycleBudget, formatIsoDate } from "./utils/budgetEngine.js";
+import { CalendarGrid } from "./components/CalendarGrid";
+import { CycleHeader } from "./components/CycleHeader";
+import { DayDetailModal } from "./components/DayDetailModal";
+import { KeypadModal } from "./components/KeypadModal";
+import { QuickBar } from "./components/QuickBar";
+import { SettingsModal } from "./components/SettingsModal";
+import { I18nProvider } from "./i18n";
+import { TOKENS } from "./theme/tokens";
+import { computeCycleBudget, formatIsoDate } from "./utils/budgetEngine";
 
 function generateUuid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -238,3 +239,5 @@ const styles = StyleSheet.create({
     paddingBottom: TOKENS.spacing.sm,
   },
 });
+
+registerRootComponent(App);
