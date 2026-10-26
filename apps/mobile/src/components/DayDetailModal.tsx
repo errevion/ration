@@ -1,7 +1,8 @@
 import type { DailyAllocation, SpendTransaction } from "@ration/types";
 import { X } from "lucide-react-native";
 import type React from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useI18n } from "../i18n";
 import { TOKENS } from "../theme/tokens";
 import { formatCurrency } from "../utils/formatters";
@@ -20,8 +21,50 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
   onClose,
 }) => {
   const { t } = useI18n();
+  const [visible, setVisible] = useState(Boolean(day));
+  const anim = useRef(new Animated.Value(0)).current;
 
-  if (!day) return null;
+  useEffect(() => {
+    if (day) {
+      setVisible(true);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
+    } else if (visible) {
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 160,
+        useNativeDriver: true,
+      }).start(() => {
+        setVisible(false);
+      });
+    }
+  }, [anim, day, visible]);
+
+  const handleDismiss = useCallback(() => {
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 160,
+      useNativeDriver: true,
+    }).start(() => {
+      setVisible(false);
+      onClose();
+    });
+  }, [anim, onClose]);
+
+  if (!visible || !day) return null;
+
+  const backdropOpacity = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  const cardScale = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.92, 1],
+  });
 
   const dayTransactions = transactions.filter((tx) => tx.date === day.date);
 
@@ -31,16 +74,23 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
     : t("tracker.dailyBudget");
 
   return (
-    <Modal visible={Boolean(day)} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={handleDismiss}>
+      <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={StyleSheet.absoluteFill}
+          onPress={handleDismiss}
+        />
+        <Animated.View
+          style={[styles.card, { transform: [{ scale: cardScale }], opacity: backdropOpacity }]}
+        >
           <View style={styles.header}>
             <View>
               <Text style={styles.title}>{t("tracker.dayDetails")}</Text>
               <Text style={styles.dateSubtitle}>{day.date}</Text>
             </View>
             <TouchableOpacity
-              onPress={onClose}
+              onPress={handleDismiss}
               accessibilityLabel={t("tracker.close")}
               style={styles.closeButton}
             >
@@ -75,11 +125,15 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
             )}
           </View>
 
-          <TouchableOpacity activeOpacity={0.8} style={styles.dismissButton} onPress={onClose}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.dismissButton}
+            onPress={handleDismiss}
+          >
             <Text style={styles.dismissText}>{t("tracker.close")}</Text>
           </TouchableOpacity>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 };
