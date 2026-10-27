@@ -1,7 +1,7 @@
 import type { MoneyCycle } from "@ration/types";
-import { Calendar, RotateCcw, X } from "lucide-react";
+import { Calendar, Download, RotateCcw, Upload, X } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
 import { formatIsoDate } from "../utils/budgetEngine.js";
@@ -18,6 +18,8 @@ interface SettingsDrawerProps {
     endDate: string;
     referenceDate?: string;
   }) => void;
+  onExportBackup?: () => void;
+  onImportBackup?: (file: File) => void;
 }
 
 const CURRENCY_PRESETS = ["Rp ", "$", "€", "£", "S$", "¥"];
@@ -66,6 +68,8 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
   referenceDate,
   onClose,
   onSave,
+  onExportBackup,
+  onImportBackup,
 }) => {
   const { t, locale, setLocale } = useI18n();
 
@@ -74,6 +78,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
   const [endDate, setEndDate] = useState(cycle.endDate);
   const [activeRefDate, setActiveRefDate] = useState(referenceDate);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activePickerTarget, setActivePickerTarget] = useState<"start" | "end" | "current" | null>(
     null
   );
@@ -513,6 +518,85 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                 <RotateCcw size={14} />
                 <span>{t("settings.resetDate")}</span>
               </button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: TOKENS.spacing.xs }}>
+            <span
+              style={{
+                fontSize: "12px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                color: TOKENS.colors.textMuted,
+              }}
+            >
+              {t("settings.dataManagement")}
+            </span>
+            <div style={{ display: "flex", gap: TOKENS.spacing.sm }}>
+              {onExportBackup && (
+                <button
+                  type="button"
+                  onClick={onExportBackup}
+                  style={{
+                    flex: 1,
+                    height: "42px",
+                    backgroundColor: TOKENS.colors.surfaceElevated,
+                    border: `1px solid ${TOKENS.colors.borderSubtle}`,
+                    borderRadius: TOKENS.radii.md,
+                    color: TOKENS.colors.textPrimary,
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Download size={15} />
+                  <span>{t("settings.exportBackup")}</span>
+                </button>
+              )}
+              {onImportBackup && (
+                <>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".json,application/json"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        onImportBackup(file);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      flex: 1,
+                      height: "42px",
+                      backgroundColor: TOKENS.colors.surfaceElevated,
+                      border: `1px solid ${TOKENS.colors.borderSubtle}`,
+                      borderRadius: TOKENS.radii.md,
+                      color: TOKENS.colors.textPrimary,
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Upload size={15} />
+                    <span>{t("settings.importBackup")}</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

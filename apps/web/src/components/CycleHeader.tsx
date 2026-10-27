@@ -12,7 +12,7 @@ interface CycleHeaderProps {
   dailyAllowance: number;
   onOpenSettings: () => void;
   onOpenAccounts: () => void;
-  onOpenCommitments: () => void;
+  onOpenPlanned: () => void;
 }
 
 function formatDisplayDate(isoDate: string): string {
@@ -44,7 +44,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   dailyAllowance,
   onOpenSettings,
   onOpenAccounts,
-  onOpenCommitments,
+  onOpenPlanned,
 }) => {
   const { t } = useI18n();
 
@@ -180,7 +180,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
 
         <button
           type="button"
-          onClick={onOpenCommitments}
+          onClick={onOpenPlanned}
           style={{
             display: "flex",
             alignItems: "center",
@@ -196,7 +196,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
           }}
         >
           <CalendarClock size={15} />
-          <span>{t("tracker.commitments")}</span>
+          <span>{t("tracker.planned")}</span>
         </button>
       </div>
     </div>

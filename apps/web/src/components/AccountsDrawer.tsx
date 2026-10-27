@@ -1,5 +1,5 @@
 import type { Account, AccountType } from "@ration/types";
-import { Plus, Star, X } from "lucide-react";
+import { Plus, Star, Trash2, X } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { useI18n } from "../i18n/index.js";
@@ -20,6 +20,7 @@ interface AccountsDrawerProps {
   }) => void;
   onToggleInclude: (accountId: string) => void;
   onSetPrimary: (accountId: string) => void;
+  onDeleteAccount: (accountId: string) => void;
 }
 
 const ACCOUNT_TYPES: AccountType[] = ["bank", "cash", "wallet", "savings", "other"];
@@ -32,6 +33,7 @@ export const AccountsDrawer: React.FC<AccountsDrawerProps> = ({
   onAddAccount,
   onToggleInclude,
   onSetPrimary,
+  onDeleteAccount,
 }) => {
   const { t } = useI18n();
   const [isAdding, setIsAdding] = useState(false);
@@ -39,6 +41,16 @@ export const AccountsDrawer: React.FC<AccountsDrawerProps> = ({
   const [type, setType] = useState<AccountType>("bank");
   const [balanceStr, setBalanceStr] = useState("0");
   const [includeInCalendar, setIncludeInCalendar] = useState(true);
+
+  function handleDeleteAccount(acc: Account) {
+    if (accounts.length <= 1) {
+      alert(t("accounts.cannotDeleteLast"));
+      return;
+    }
+    if (window.confirm(t("accounts.deleteConfirm"))) {
+      onDeleteAccount(acc.id);
+    }
+  }
 
   function handleCreateAccount() {
     if (!name.trim()) return;
@@ -248,23 +260,41 @@ export const AccountsDrawer: React.FC<AccountsDrawerProps> = ({
                     {t("accounts.includeInCalendar")}
                   </label>
 
-                  {!acc.isPrimary && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    {!acc.isPrimary && (
+                      <button
+                        type="button"
+                        onClick={() => onSetPrimary(acc.id)}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: TOKENS.colors.primary,
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          padding: "4px 8px",
+                        }}
+                      >
+                        {t("accounts.isPrimary")}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => onSetPrimary(acc.id)}
+                      onClick={() => handleDeleteAccount(acc)}
+                      aria-label={t("accounts.deleteAccount")}
                       style={{
                         background: "transparent",
                         border: "none",
-                        color: TOKENS.colors.primary,
-                        fontSize: "11px",
-                        fontWeight: 700,
+                        color: TOKENS.colors.danger,
                         cursor: "pointer",
-                        padding: "4px 8px",
+                        padding: "4px",
+                        display: "flex",
+                        alignItems: "center",
                       }}
                     >
-                      {t("accounts.isPrimary")}
+                      <Trash2 size={15} />
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             ))

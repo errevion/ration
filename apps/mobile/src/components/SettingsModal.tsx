@@ -1,5 +1,5 @@
 import type { MoneyCycle } from "@ration/types";
-import { Calendar, RotateCcw, X } from "lucide-react-native";
+import { Calendar, Download, RotateCcw, Upload, X } from "lucide-react-native";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -28,6 +28,8 @@ interface SettingsModalProps {
     endDate: string;
     referenceDate?: string;
   }) => void;
+  onExportBackup?: () => void;
+  onImportBackup?: () => void;
 }
 
 const CURRENCY_PRESETS = ["Rp ", "$", "€", "£", "S$", "¥"];
@@ -76,6 +78,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   referenceDate,
   onClose,
   onSave,
+  onExportBackup,
+  onImportBackup,
 }) => {
   const { t, locale, setLocale } = useI18n();
 
@@ -327,6 +331,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <RotateCcw size={14} color={TOKENS.colors.textSecondary} />
                     <Text style={styles.resetButtonText}>{t("settings.resetDate")}</Text>
                   </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t("settings.dataManagement")}</Text>
+                <View style={styles.backupRow}>
+                  {onExportBackup && (
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={styles.backupButton}
+                      onPress={onExportBackup}
+                    >
+                      <Download size={16} color={TOKENS.colors.textPrimary} />
+                      <Text style={styles.backupButtonText}>{t("settings.exportBackup")}</Text>
+                    </TouchableOpacity>
+                  )}
+                  {onImportBackup && (
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={styles.backupButton}
+                      onPress={onImportBackup}
+                    >
+                      <Upload size={16} color={TOKENS.colors.textPrimary} />
+                      <Text style={styles.backupButtonText}>{t("settings.importBackup")}</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </ScrollView>
@@ -588,5 +617,26 @@ const styles = StyleSheet.create({
   },
   saveTextDisabled: {
     color: TOKENS.colors.textMuted,
+  },
+  backupRow: {
+    flexDirection: "row",
+    gap: TOKENS.spacing.sm,
+  },
+  backupButton: {
+    flex: 1,
+    height: 44,
+    backgroundColor: TOKENS.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    borderRadius: TOKENS.radii.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  backupButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: TOKENS.colors.textPrimary,
   },
 });

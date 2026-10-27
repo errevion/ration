@@ -112,6 +112,9 @@ export type CreateAccountDto = z.infer<typeof CreateAccountSchema>;
 export const UpdateAccountSchema = CreateAccountSchema.partial();
 export type UpdateAccountDto = z.infer<typeof UpdateAccountSchema>;
 
+export const TransactionTypeSchema = z.enum(["spend", "income"]);
+export type TransactionType = z.infer<typeof TransactionTypeSchema>;
+
 export const PlannedPaymentStatusSchema = z.enum(["pending", "completed", "cancelled"]);
 export type PlannedPaymentStatus = z.infer<typeof PlannedPaymentStatusSchema>;
 
@@ -120,6 +123,7 @@ export const PlannedPaymentSchema = z.object({
   name: z.string().min(1).max(128),
   amount: z.number().positive(),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  type: TransactionTypeSchema.default("spend"),
   accountId: EntityIdSchema.optional(),
   status: PlannedPaymentStatusSchema.default("pending"),
   createdAt: z.string().datetime(),
@@ -131,6 +135,7 @@ export const CreatePlannedPaymentSchema = PlannedPaymentSchema.omit({
   createdAt: true,
 }).extend({
   id: EntityIdSchema.optional(),
+  type: TransactionTypeSchema.default("spend"),
   status: PlannedPaymentStatusSchema.default("pending"),
 });
 export type CreatePlannedPaymentDto = z.infer<typeof CreatePlannedPaymentSchema>;
@@ -167,9 +172,6 @@ export const CreateLoanRecordSchema = LoanRecordSchema.omit({
 });
 export type CreateLoanRecordDto = z.infer<typeof CreateLoanRecordSchema>;
 
-export const TransactionTypeSchema = z.enum(["spend", "income"]);
-export type TransactionType = z.infer<typeof TransactionTypeSchema>;
-
 export const SpendTransactionSchema = z.object({
   id: EntityIdSchema,
   cycleId: EntityIdSchema,
@@ -205,3 +207,18 @@ export const DailyAllocationSchema = z.object({
   commitmentAmount: z.number().nonnegative().default(0),
 });
 export type DailyAllocation = z.infer<typeof DailyAllocationSchema>;
+
+export const BackupDataSchema = z.object({
+  version: z.number().int(),
+  exportedAt: z.string().datetime(),
+  cycle: MoneyCycleSchema,
+  accounts: z.array(AccountSchema),
+  transactions: z.array(SpendTransactionSchema),
+  plannedPayments: z.array(PlannedPaymentSchema),
+  loans: z.array(LoanRecordSchema),
+  referenceDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+});
+export type BackupData = z.infer<typeof BackupDataSchema>;
