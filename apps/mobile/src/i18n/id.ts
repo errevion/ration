@@ -59,6 +59,7 @@ export const id: Translations = {
     committed: "Komitmen",
     accounts: "Akun",
     planned: "Rencana",
+    loans: "Pinjaman",
     scheduledPlanned: "Rencana Terjadwal",
   },
   weekdays: {
@@ -114,8 +115,8 @@ export const id: Translations = {
     emptyPlanned: "Tidak ada tagihan terencana",
     emptyLoans: "Tidak ada pinjaman aktif",
     newLoan: "Catat Pinjaman",
-    borrow: "Utang (Dipinjam)",
-    lend: "Piutang (Dipinjamkan)",
+    borrow: "Utang",
+    lend: "Piutang",
     borrowLabel: "Utang",
     lendLabel: "Piutang",
     counterparty: "Pihak Terkait",

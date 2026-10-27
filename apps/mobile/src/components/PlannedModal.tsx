@@ -1,5 +1,5 @@
-import type { Account, LoanRecord, LoanType, PlannedPayment } from "@ration/types";
-import { ArrowDownLeft, ArrowUpRight, Check, Plus, X } from "lucide-react-native";
+import type { Account, PlannedPayment } from "@ration/types";
+import { Calendar, Check, Plus, X } from "lucide-react-native";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -16,12 +16,12 @@ import { useI18n } from "../i18n";
 import { TOKENS } from "../theme/tokens";
 import { formatIsoDate } from "../utils/budgetEngine";
 import { formatCurrency } from "../utils/formatters";
+import { CalendarDatePicker } from "./CalendarDatePicker";
 
 interface PlannedModalProps {
   isOpen: boolean;
   accounts: Account[];
   plannedPayments: PlannedPayment[];
-  loans: LoanRecord[];
   currency: string;
   onClose: () => void;
   onAddPlannedPayment: (payment: {
@@ -32,34 +32,20 @@ interface PlannedModalProps {
     accountId?: string;
   }) => void;
   onMarkPaymentPaid: (paymentId: string) => void;
-  onAddLoan: (loan: {
-    counterparty: string;
-    type: LoanType;
-    amount: number;
-    dueDate: string;
-    accountId?: string;
-    notes?: string;
-  }) => void;
-  onMarkLoanSettled: (loanId: string) => void;
 }
 
 export const PlannedModal: React.FC<PlannedModalProps> = ({
   isOpen,
   accounts,
   plannedPayments,
-  loans,
   currency,
   onClose,
   onAddPlannedPayment,
   onMarkPaymentPaid,
-  onAddLoan,
-  onMarkLoanSettled,
 }) => {
   const { t } = useI18n();
   const [visible, setVisible] = useState(isOpen);
   const anim = useRef(new Animated.Value(0)).current;
-
-  const [activeTab, setActiveTab] = useState<"planned" | "loans">("planned");
 
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [paymentName, setPaymentName] = useState("");
@@ -69,22 +55,12 @@ export const PlannedModal: React.FC<PlannedModalProps> = ({
   const [paymentAccountId, setPaymentAccountId] = useState<string | undefined>(
     () => accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id
   );
-
-  const [isAddingLoan, setIsAddingLoan] = useState(false);
-  const [loanCounterparty, setLoanCounterparty] = useState("");
-  const [loanType, setLoanType] = useState<LoanType>("borrow");
-  const [loanAmount, setLoanAmount] = useState("");
-  const [loanDueDate, setLoanDueDate] = useState(() => formatIsoDate(new Date()));
-  const [loanAccountId, setLoanAccountId] = useState<string | undefined>(
-    () => accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id
-  );
-  const [loanNotes, setLoanNotes] = useState("");
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setVisible(true);
       setIsAddingPayment(false);
-      setIsAddingLoan(false);
       Animated.timing(anim, {
         toValue: 1,
         duration: 240,
@@ -128,23 +104,6 @@ export const PlannedModal: React.FC<PlannedModalProps> = ({
     setIsAddingPayment(false);
   }
 
-  function handleCreateLoan() {
-    const amt = Number.parseFloat(loanAmount);
-    if (!loanCounterparty.trim() || !amt || amt <= 0) return;
-    onAddLoan({
-      counterparty: loanCounterparty.trim(),
-      type: loanType,
-      amount: amt,
-      dueDate: loanDueDate,
-      accountId: loanAccountId,
-      notes: loanNotes.trim() || undefined,
-    });
-    setLoanCounterparty("");
-    setLoanAmount("");
-    setLoanNotes("");
-    setIsAddingLoan(false);
-  }
-
   if (!visible) return null;
 
   const backdropOpacity = anim.interpolate({
@@ -166,7 +125,7 @@ export const PlannedModal: React.FC<PlannedModalProps> = ({
         />
         <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>{t("planned.title")}</Text>
+            <Text style={styles.title}>{t("planned.tabPlanned")}</Text>
             <TouchableOpacity
               onPress={handleDismiss}
               accessibilityLabel={t("tracker.close")}
@@ -176,413 +135,193 @@ export const PlannedModal: React.FC<PlannedModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.tabBar}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[styles.tabButton, activeTab === "planned" && styles.tabButtonActive]}
-              onPress={() => setActiveTab("planned")}
-            >
-              <Text
-                style={[
-                  styles.tabButtonText,
-                  activeTab === "planned" && styles.tabButtonTextActive,
-                ]}
-              >
-                {t("planned.tabPlanned")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={[styles.tabButton, activeTab === "loans" && styles.tabButtonActive]}
-              onPress={() => setActiveTab("loans")}
-            >
-              <Text
-                style={[styles.tabButtonText, activeTab === "loans" && styles.tabButtonTextActive]}
-              >
-                {t("planned.tabLoans")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-            {activeTab === "planned" ? (
-              <View style={styles.tabContent}>
-                {plannedPayments.length === 0 ? (
-                  <Text style={styles.emptyText}>{t("planned.emptyPlanned")}</Text>
-                ) : (
-                  plannedPayments.map((item) => (
-                    <View key={item.id} style={styles.card}>
-                      <View style={styles.cardTop}>
-                        <View style={styles.cardInfo}>
-                          <Text style={styles.cardTitle}>{item.name}</Text>
-                          <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
-                        </View>
-                        <Text style={styles.cardAmount}>
-                          {formatCurrency(item.amount, currency)}
-                        </Text>
+            <View style={styles.tabContent}>
+              {plannedPayments.length === 0 ? (
+                <Text style={styles.emptyText}>{t("planned.emptyPlanned")}</Text>
+              ) : (
+                plannedPayments.map((item) => (
+                  <View key={item.id} style={styles.card}>
+                    <View style={styles.cardTop}>
+                      <View style={styles.cardInfo}>
+                        <Text style={styles.cardTitle}>{item.name}</Text>
+                        <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
                       </View>
+                      <Text style={styles.cardAmount}>{formatCurrency(item.amount, currency)}</Text>
+                    </View>
 
-                      <View style={styles.cardFooter}>
-                        <View
+                    <View style={styles.cardFooter}>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          item.status === "completed"
+                            ? styles.statusBadgeCompleted
+                            : styles.statusBadgePending,
+                        ]}
+                      >
+                        <Text
                           style={[
-                            styles.statusBadge,
+                            styles.statusText,
                             item.status === "completed"
-                              ? styles.statusBadgeCompleted
-                              : styles.statusBadgePending,
+                              ? styles.statusTextCompleted
+                              : styles.statusTextPending,
                           ]}
                         >
-                          <Text
-                            style={[
-                              styles.statusText,
-                              item.status === "completed"
-                                ? styles.statusTextCompleted
-                                : styles.statusTextPending,
-                            ]}
-                          >
-                            {item.status === "completed"
-                              ? t("planned.paid")
-                              : t("planned.activeDebt")}
+                          {item.status === "completed"
+                            ? t("planned.paid")
+                            : t("planned.activeDebt")}
+                        </Text>
+                      </View>
+
+                      {item.status === "pending" && (
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          style={styles.actionButton}
+                          onPress={() => onMarkPaymentPaid(item.id)}
+                        >
+                          <Check size={14} color={TOKENS.colors.primary} />
+                          <Text style={styles.actionButtonText}>
+                            {item.type === "income"
+                              ? t("planned.markReceived")
+                              : t("planned.markPaid")}
                           </Text>
-                        </View>
-
-                        {item.status === "pending" && (
-                          <TouchableOpacity
-                            activeOpacity={0.7}
-                            style={styles.actionButton}
-                            onPress={() => onMarkPaymentPaid(item.id)}
-                          >
-                            <Check size={14} color={TOKENS.colors.primary} />
-                            <Text style={styles.actionButtonText}>
-                              {item.type === "income"
-                                ? t("planned.markReceived")
-                                : t("planned.markPaid")}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </View>
-                  ))
-                )}
-                {isAddingPayment ? (
-                  <View style={styles.formContainer}>
-                    <Text style={styles.formHeading}>{t("planned.newPlanned")}</Text>
-
-                    <View style={styles.loanTypeRow}>
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={[
-                          styles.loanTypeButton,
-                          paymentType === "spend" && styles.loanTypeButtonActive,
-                        ]}
-                        onPress={() => setPaymentType("spend")}
-                      >
-                        <Text
-                          style={[
-                            styles.loanTypeButtonText,
-                            paymentType === "spend" && styles.loanTypeButtonTextActive,
-                          ]}
-                        >
-                          {t("planned.billLabel")}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={[
-                          styles.loanTypeButton,
-                          paymentType === "income" && styles.loanTypeButtonActive,
-                        ]}
-                        onPress={() => setPaymentType("income")}
-                      >
-                        <Text
-                          style={[
-                            styles.loanTypeButtonText,
-                            paymentType === "income" && styles.loanTypeButtonTextActive,
-                          ]}
-                        >
-                          {t("planned.incomeLabel")}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    <TextInput
-                      value={paymentName}
-                      onChangeText={setPaymentName}
-                      placeholder={t("planned.namePlaceholder")}
-                      placeholderTextColor={TOKENS.colors.textMuted}
-                      style={styles.input}
-                    />
-                    <TextInput
-                      value={paymentAmount}
-                      onChangeText={setPaymentAmount}
-                      placeholder={t("planned.amount")}
-                      placeholderTextColor={TOKENS.colors.textMuted}
-                      keyboardType="numeric"
-                      style={styles.input}
-                    />
-                    <TextInput
-                      value={paymentDueDate}
-                      onChangeText={setPaymentDueDate}
-                      placeholder={t("settings.datePlaceholder")}
-                      placeholderTextColor={TOKENS.colors.textMuted}
-                      maxLength={10}
-                      style={styles.input}
-                    />
-                    {accounts.length > 0 && (
-                      <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>{t("accounts.selectAccount")}</Text>
-                        <View style={styles.accountChipsRow}>
-                          {accounts.map((acc) => {
-                            const isSel = (paymentAccountId || accounts[0]?.id) === acc.id;
-                            return (
-                              <TouchableOpacity
-                                key={acc.id}
-                                activeOpacity={0.7}
-                                style={[styles.accountChip, isSel && styles.accountChipActive]}
-                                onPress={() => setPaymentAccountId(acc.id)}
-                              >
-                                <Text
-                                  style={[
-                                    styles.accountChipText,
-                                    isSel && styles.accountChipTextActive,
-                                  ]}
-                                >
-                                  {acc.name}
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    )}
-                    <View style={styles.formActions}>
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={styles.cancelButton}
-                        onPress={() => setIsAddingPayment(false)}
-                      >
-                        <Text style={styles.cancelText}>{t("common.cancel")}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        style={styles.confirmButton}
-                        onPress={handleCreatePayment}
-                      >
-                        <Text style={styles.confirmText}>{t("common.confirm")}</Text>
-                      </TouchableOpacity>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
-                ) : (
+                ))
+              )}
+              {isAddingPayment ? (
+                <View style={styles.formContainer}>
+                  <Text style={styles.formHeading}>{t("planned.newPlanned")}</Text>
+
+                  <View style={styles.loanTypeRow}>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={[
+                        styles.loanTypeButton,
+                        paymentType === "spend" && styles.loanTypeButtonActive,
+                      ]}
+                      onPress={() => setPaymentType("spend")}
+                    >
+                      <Text
+                        style={[
+                          styles.loanTypeButtonText,
+                          paymentType === "spend" && styles.loanTypeButtonTextActive,
+                        ]}
+                      >
+                        {t("planned.billLabel")}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={[
+                        styles.loanTypeButton,
+                        paymentType === "income" && styles.loanTypeButtonActive,
+                      ]}
+                      onPress={() => setPaymentType("income")}
+                    >
+                      <Text
+                        style={[
+                          styles.loanTypeButtonText,
+                          paymentType === "income" && styles.loanTypeButtonTextActive,
+                        ]}
+                      >
+                        {t("planned.incomeLabel")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    value={paymentName}
+                    onChangeText={setPaymentName}
+                    placeholder={t("planned.namePlaceholder")}
+                    placeholderTextColor={TOKENS.colors.textMuted}
+                    style={styles.input}
+                  />
+                  <TextInput
+                    value={paymentAmount}
+                    onChangeText={setPaymentAmount}
+                    placeholder={t("planned.amount")}
+                    placeholderTextColor={TOKENS.colors.textMuted}
+                    keyboardType="numeric"
+                    style={styles.input}
+                  />
                   <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={styles.openAddButton}
-                    onPress={() => setIsAddingPayment(true)}
+                    activeOpacity={0.7}
+                    style={styles.dateButton}
+                    onPress={() => setIsDatePickerOpen(true)}
                   >
-                    <Plus size={16} color={TOKENS.colors.textPrimary} />
-                    <Text style={styles.openAddText}>{t("planned.newPayment")}</Text>
+                    <Text style={styles.dateButtonText}>{paymentDueDate}</Text>
+                    <Calendar size={16} color={TOKENS.colors.textMuted} />
                   </TouchableOpacity>
-                )}
-              </View>
-            ) : (
-              <View style={styles.tabContent}>
-                {loans.length === 0 ? (
-                  <Text style={styles.emptyText}>{t("planned.emptyLoans")}</Text>
-                ) : (
-                  loans.map((item) => {
-                    const isBorrow = item.type === "borrow";
-                    return (
-                      <View key={item.id} style={styles.card}>
-                        <View style={styles.cardTop}>
-                          <View style={styles.cardInfo}>
-                            <View style={styles.typeBadgeRow}>
-                              <View
+                  {accounts.length > 0 && (
+                    <View style={styles.fieldGroup}>
+                      <Text style={styles.fieldLabel}>{t("accounts.selectAccount")}</Text>
+                      <View style={styles.accountChipsRow}>
+                        {accounts.map((acc) => {
+                          const isSel = (paymentAccountId || accounts[0]?.id) === acc.id;
+                          return (
+                            <TouchableOpacity
+                              key={acc.id}
+                              activeOpacity={0.7}
+                              style={[styles.accountChip, isSel && styles.accountChipActive]}
+                              onPress={() => setPaymentAccountId(acc.id)}
+                            >
+                              <Text
                                 style={[
-                                  styles.loanTypeBadge,
-                                  isBorrow ? styles.badgeBorrow : styles.badgeLend,
+                                  styles.accountChipText,
+                                  isSel && styles.accountChipTextActive,
                                 ]}
                               >
-                                {isBorrow ? (
-                                  <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
-                                ) : (
-                                  <ArrowUpRight size={12} color={TOKENS.colors.success} />
-                                )}
-                                <Text
-                                  style={[
-                                    styles.loanTypeText,
-                                    isBorrow ? styles.textBorrow : styles.textLend,
-                                  ]}
-                                >
-                                  {isBorrow ? t("planned.borrowLabel") : t("planned.lendLabel")}
-                                </Text>
-                              </View>
-                              <Text style={styles.cardTitle}>{item.counterparty}</Text>
-                            </View>
-                            <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
-                          </View>
-                          <Text style={styles.cardAmount}>
-                            {formatCurrency(item.amount, currency)}
-                          </Text>
-                        </View>
-
-                        <View style={styles.cardFooter}>
-                          <Text style={styles.cardSubtitle}>
-                            {item.status === "settled"
-                              ? t("planned.settled")
-                              : isBorrow
-                                ? t("planned.activeDebt")
-                                : t("planned.activeReceivable")}
-                          </Text>
-
-                          {item.status === "active" && (
-                            <TouchableOpacity
-                              activeOpacity={0.7}
-                              style={styles.actionButton}
-                              onPress={() => onMarkLoanSettled(item.id)}
-                            >
-                              <Check size={14} color={TOKENS.colors.primary} />
-                              <Text style={styles.actionButtonText}>
-                                {t("planned.markSettled")}
+                                {acc.name}
                               </Text>
                             </TouchableOpacity>
-                          )}
-                        </View>
+                          );
+                        })}
                       </View>
-                    );
-                  })
-                )}
-                {isAddingLoan ? (
-                  <View style={styles.formContainer}>
-                    <Text style={styles.formHeading}>{t("planned.newLoan")}</Text>
-
-                    <View style={styles.loanTypeRow}>
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={[
-                          styles.loanTypeButton,
-                          loanType === "borrow" && styles.loanTypeButtonActive,
-                        ]}
-                        onPress={() => setLoanType("borrow")}
-                      >
-                        <Text
-                          style={[
-                            styles.loanTypeButtonText,
-                            loanType === "borrow" && styles.loanTypeButtonTextActive,
-                          ]}
-                        >
-                          {t("planned.borrow")}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={[
-                          styles.loanTypeButton,
-                          loanType === "lend" && styles.loanTypeButtonActive,
-                        ]}
-                        onPress={() => setLoanType("lend")}
-                      >
-                        <Text
-                          style={[
-                            styles.loanTypeButtonText,
-                            loanType === "lend" && styles.loanTypeButtonTextActive,
-                          ]}
-                        >
-                          {t("planned.lend")}
-                        </Text>
-                      </TouchableOpacity>
                     </View>
-
-                    <TextInput
-                      value={loanCounterparty}
-                      onChangeText={setLoanCounterparty}
-                      placeholder={t("planned.counterpartyPlaceholder")}
-                      placeholderTextColor={TOKENS.colors.textMuted}
-                      style={styles.input}
-                    />
-                    <TextInput
-                      value={loanAmount}
-                      onChangeText={setLoanAmount}
-                      placeholder={t("planned.amount")}
-                      placeholderTextColor={TOKENS.colors.textMuted}
-                      keyboardType="numeric"
-                      style={styles.input}
-                    />
-                    <TextInput
-                      value={loanDueDate}
-                      onChangeText={setLoanDueDate}
-                      placeholder={t("settings.datePlaceholder")}
-                      placeholderTextColor={TOKENS.colors.textMuted}
-                      maxLength={10}
-                      style={styles.input}
-                    />
-                    <TextInput
-                      value={loanNotes}
-                      onChangeText={setLoanNotes}
-                      placeholder={t("planned.notesPlaceholder")}
-                      placeholderTextColor={TOKENS.colors.textMuted}
-                      style={styles.input}
-                    />
-
-                    {accounts.length > 0 && (
-                      <View style={styles.fieldGroup}>
-                        <Text style={styles.fieldLabel}>
-                          {loanType === "borrow"
-                            ? t("planned.depositAccount")
-                            : t("planned.deductAccount")}
-                        </Text>
-                        <View style={styles.accountChipsRow}>
-                          {accounts.map((acc) => {
-                            const isSel = (loanAccountId || accounts[0]?.id) === acc.id;
-                            return (
-                              <TouchableOpacity
-                                key={acc.id}
-                                activeOpacity={0.7}
-                                style={[styles.accountChip, isSel && styles.accountChipActive]}
-                                onPress={() => setLoanAccountId(acc.id)}
-                              >
-                                <Text
-                                  style={[
-                                    styles.accountChipText,
-                                    isSel && styles.accountChipTextActive,
-                                  ]}
-                                >
-                                  {acc.name}
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    )}
-                    <View style={styles.formActions}>
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={styles.cancelButton}
-                        onPress={() => setIsAddingLoan(false)}
-                      >
-                        <Text style={styles.cancelText}>{t("common.cancel")}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        style={styles.confirmButton}
-                        onPress={handleCreateLoan}
-                      >
-                        <Text style={styles.confirmText}>{t("common.confirm")}</Text>
-                      </TouchableOpacity>
-                    </View>
+                  )}
+                  <View style={styles.formActions}>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      style={styles.cancelButton}
+                      onPress={() => setIsAddingPayment(false)}
+                    >
+                      <Text style={styles.cancelText}>{t("common.cancel")}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      style={styles.confirmButton}
+                      onPress={handleCreatePayment}
+                    >
+                      <Text style={styles.confirmText}>{t("common.confirm")}</Text>
+                    </TouchableOpacity>
                   </View>
-                ) : (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={styles.openAddButton}
-                    onPress={() => setIsAddingLoan(true)}
-                  >
-                    <Plus size={16} color={TOKENS.colors.textPrimary} />
-                    <Text style={styles.openAddText}>{t("planned.newLoan")}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
+                </View>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.openAddButton}
+                  onPress={() => setIsAddingPayment(true)}
+                >
+                  <Plus size={16} color={TOKENS.colors.textPrimary} />
+                  <Text style={styles.openAddText}>{t("planned.newPayment")}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </ScrollView>
         </Animated.View>
       </Animated.View>
+      <CalendarDatePicker
+        isOpen={isDatePickerOpen}
+        title={t("planned.dueDate")}
+        selectedDate={paymentDueDate}
+        onSelectDate={(date) => {
+          setPaymentDueDate(date);
+          setIsDatePickerOpen(false);
+        }}
+        onClose={() => setIsDatePickerOpen(false)}
+      />
     </Modal>
   );
 };
@@ -887,5 +626,21 @@ const styles = StyleSheet.create({
   accountChipTextActive: {
     color: TOKENS.colors.textOnPrimary,
     fontWeight: "700",
+  },
+  dateButton: {
+    height: 42,
+    backgroundColor: TOKENS.colors.surface,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    borderRadius: TOKENS.radii.md,
+    paddingHorizontal: TOKENS.spacing.md,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dateButtonText: {
+    color: TOKENS.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

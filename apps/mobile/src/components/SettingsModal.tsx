@@ -32,7 +32,7 @@ interface SettingsModalProps {
   onImportBackup?: () => void;
 }
 
-const CURRENCY_PRESETS = ["Rp ", "$", "€", "£", "S$", "¥"];
+const CURRENCY_PRESETS = ["Rp ", "$", "€", "£", "¥"];
 
 function getCalendarMonthPreset(): { startDate: string; endDate: string } {
   const now = new Date();

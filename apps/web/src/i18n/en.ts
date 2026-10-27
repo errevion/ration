@@ -57,6 +57,7 @@ export const en = {
     committed: "Committed",
     accounts: "Accounts",
     planned: "Planned",
+    loans: "Loans",
     scheduledPlanned: "Scheduled Plans",
   },
   weekdays: {
@@ -112,8 +113,8 @@ export const en = {
     emptyPlanned: "No planned bills scheduled",
     emptyLoans: "No active loans",
     newLoan: "Record Loan",
-    borrow: "Borrow (Debt)",
-    lend: "Lend (Receivable)",
+    borrow: "Borrow",
+    lend: "Lend",
     borrowLabel: "Borrow",
     lendLabel: "Lend",
     counterparty: "Counterparty",

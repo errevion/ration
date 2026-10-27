@@ -13,7 +13,7 @@ interface AccountsDrawerProps {
   onClose: () => void;
   onAddAccount: (account: {
     name: string;
-    type: AccountType;
+    type?: AccountType;
     balance: number;
     includeInCalendar: boolean;
     isPrimary: boolean;
@@ -22,8 +22,6 @@ interface AccountsDrawerProps {
   onSetPrimary: (accountId: string) => void;
   onDeleteAccount: (accountId: string) => void;
 }
-
-const ACCOUNT_TYPES: AccountType[] = ["bank", "cash", "wallet", "savings", "other"];
 
 export const AccountsDrawer: React.FC<AccountsDrawerProps> = ({
   isOpen,
@@ -38,7 +36,6 @@ export const AccountsDrawer: React.FC<AccountsDrawerProps> = ({
   const { t } = useI18n();
   const [isAdding, setIsAdding] = useState(false);
   const [name, setName] = useState("");
-  const [type, setType] = useState<AccountType>("bank");
   const [balanceStr, setBalanceStr] = useState("0");
   const [includeInCalendar, setIncludeInCalendar] = useState(true);
 
@@ -57,7 +54,7 @@ export const AccountsDrawer: React.FC<AccountsDrawerProps> = ({
     const parsedBalance = Number.parseFloat(balanceStr) || 0;
     onAddAccount({
       name: name.trim(),
-      type,
+      type: "bank",
       balance: parsedBalance,
       includeInCalendar,
       isPrimary: accounts.length === 0,
@@ -337,36 +334,6 @@ export const AccountsDrawer: React.FC<AccountsDrawerProps> = ({
                   boxSizing: "border-box",
                 }}
               />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <span style={{ fontSize: "11px", fontWeight: 600, color: TOKENS.colors.textMuted }}>
-                {t("accounts.accountType")}
-              </span>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {ACCOUNT_TYPES.map((tItem) => {
-                  const isSel = type === tItem;
-                  return (
-                    <button
-                      key={tItem}
-                      type="button"
-                      onClick={() => setType(tItem)}
-                      style={{
-                        backgroundColor: isSel ? TOKENS.colors.primary : TOKENS.colors.surface,
-                        color: isSel ? TOKENS.colors.textOnPrimary : TOKENS.colors.textSecondary,
-                        border: `1px solid ${isSel ? TOKENS.colors.primary : TOKENS.colors.borderSubtle}`,
-                        borderRadius: TOKENS.radii.pill,
-                        padding: "4px 10px",
-                        fontSize: "12px",
-                        fontWeight: isSel ? 700 : 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {getTypeLabel(tItem)}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>

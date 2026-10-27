@@ -25,7 +25,7 @@ interface AccountsModalProps {
   onClose: () => void;
   onAddAccount: (account: {
     name: string;
-    type: AccountType;
+    type?: AccountType;
     balance: number;
     includeInCalendar: boolean;
     isPrimary: boolean;
@@ -34,8 +34,6 @@ interface AccountsModalProps {
   onSetPrimary: (accountId: string) => void;
   onDeleteAccount: (accountId: string) => void;
 }
-
-const ACCOUNT_TYPES: AccountType[] = ["bank", "cash", "wallet", "savings", "other"];
 
 export const AccountsModal: React.FC<AccountsModalProps> = ({
   isOpen,
@@ -53,7 +51,6 @@ export const AccountsModal: React.FC<AccountsModalProps> = ({
 
   const [isAdding, setIsAdding] = useState(false);
   const [name, setName] = useState("");
-  const [type, setType] = useState<AccountType>("bank");
   const [balanceStr, setBalanceStr] = useState("0");
   const [includeInCalendar, setIncludeInCalendar] = useState(true);
 
@@ -93,7 +90,7 @@ export const AccountsModal: React.FC<AccountsModalProps> = ({
     const parsedBalance = Number.parseFloat(balanceStr) || 0;
     onAddAccount({
       name: name.trim(),
-      type,
+      type: "bank",
       balance: parsedBalance,
       includeInCalendar,
       isPrimary: accounts.length === 0,
@@ -245,27 +242,6 @@ export const AccountsModal: React.FC<AccountsModalProps> = ({
                     placeholderTextColor={TOKENS.colors.textMuted}
                     style={styles.input}
                   />
-                </View>
-
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>{t("accounts.accountType")}</Text>
-                  <View style={styles.typeSelector}>
-                    {ACCOUNT_TYPES.map((tItem) => {
-                      const isSel = type === tItem;
-                      return (
-                        <TouchableOpacity
-                          key={tItem}
-                          activeOpacity={0.7}
-                          style={[styles.typeChip, isSel && styles.typeChipActive]}
-                          onPress={() => setType(tItem)}
-                        >
-                          <Text style={[styles.typeChipText, isSel && styles.typeChipTextActive]}>
-                            {getTypeLabel(tItem)}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
                 </View>
 
                 <View style={styles.fieldGroup}>
@@ -495,32 +471,6 @@ const styles = StyleSheet.create({
     color: TOKENS.colors.textPrimary,
     fontSize: 14,
     fontWeight: "600",
-  },
-  typeSelector: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  typeChip: {
-    backgroundColor: TOKENS.colors.surface,
-    borderWidth: 1,
-    borderColor: TOKENS.colors.borderSubtle,
-    borderRadius: TOKENS.radii.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  typeChipActive: {
-    backgroundColor: TOKENS.colors.primary,
-    borderColor: TOKENS.colors.primary,
-  },
-  typeChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: TOKENS.colors.textSecondary,
-  },
-  typeChipTextActive: {
-    color: TOKENS.colors.textOnPrimary,
-    fontWeight: "700",
   },
   formActions: {
     flexDirection: "row",

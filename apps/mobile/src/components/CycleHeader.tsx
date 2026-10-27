@@ -1,5 +1,5 @@
 import type { MoneyCycle } from "@ration/types";
-import { CalendarClock, Settings, Wallet } from "lucide-react-native";
+import { CalendarClock, HandCoins, Settings, Wallet } from "lucide-react-native";
 import type React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useI18n } from "../i18n";
@@ -14,6 +14,7 @@ interface CycleHeaderProps {
   onOpenSettings: () => void;
   onOpenAccounts: () => void;
   onOpenPlanned: () => void;
+  onOpenLoans: () => void;
 }
 
 function formatDisplayDate(isoDate: string): string {
@@ -46,6 +47,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   onOpenSettings,
   onOpenAccounts,
   onOpenPlanned,
+  onOpenLoans,
 }) => {
   const { t } = useI18n();
 
@@ -98,6 +100,11 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
         <TouchableOpacity activeOpacity={0.7} style={styles.hubPill} onPress={onOpenPlanned}>
           <CalendarClock size={15} color={TOKENS.colors.textPrimary} />
           <Text style={styles.hubPillText}>{t("tracker.planned")}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity activeOpacity={0.7} style={styles.hubPill} onPress={onOpenLoans}>
+          <HandCoins size={15} color={TOKENS.colors.textPrimary} />
+          <Text style={styles.hubPillText}>{t("tracker.loans")}</Text>
         </TouchableOpacity>
       </View>
     </View>

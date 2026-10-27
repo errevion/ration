@@ -1,5 +1,5 @@
 import type { MoneyCycle } from "@ration/types";
-import { CalendarClock, Settings, Wallet } from "lucide-react";
+import { CalendarClock, HandCoins, Settings, Wallet } from "lucide-react";
 import type React from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
@@ -13,6 +13,7 @@ interface CycleHeaderProps {
   onOpenSettings: () => void;
   onOpenAccounts: () => void;
   onOpenPlanned: () => void;
+  onOpenLoans: () => void;
 }
 
 function formatDisplayDate(isoDate: string): string {
@@ -45,6 +46,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   onOpenSettings,
   onOpenAccounts,
   onOpenPlanned,
+  onOpenLoans,
 }) => {
   const { t } = useI18n();
 
@@ -197,6 +199,27 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
         >
           <CalendarClock size={15} />
           <span>{t("tracker.planned")}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenLoans}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            backgroundColor: TOKENS.colors.surfaceElevated,
+            border: `1px solid ${TOKENS.colors.borderSubtle}`,
+            borderRadius: TOKENS.radii.pill,
+            padding: `${TOKENS.spacing.xs} ${TOKENS.spacing.md}`,
+            color: TOKENS.colors.textPrimary,
+            fontSize: "12px",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          <HandCoins size={15} />
+          <span>{t("tracker.loans")}</span>
         </button>
       </div>
     </div>

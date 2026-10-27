@@ -18,6 +18,7 @@ import { CalendarGrid } from "./components/CalendarGrid";
 import { CycleHeader } from "./components/CycleHeader";
 import { DayDetailModal } from "./components/DayDetailModal";
 import { KeypadModal } from "./components/KeypadModal";
+import { LoansModal } from "./components/LoansModal";
 import { PlannedModal } from "./components/PlannedModal";
 import { QuickBar } from "./components/QuickBar";
 import { SettingsModal } from "./components/SettingsModal";
@@ -113,6 +114,7 @@ function MainScreen() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccountsOpen, setIsAccountsOpen] = useState(false);
   const [isPlannedOpen, setIsPlannedOpen] = useState(false);
+  const [isLoansOpen, setIsLoansOpen] = useState(false);
 
   const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
   const [selectedDay, setSelectedDay] = useState<DailyAllocation | null>(null);
@@ -184,7 +186,7 @@ function MainScreen() {
 
   function handleAddAccount(accData: {
     name: string;
-    type: AccountType;
+    type?: AccountType;
     balance: number;
     includeInCalendar: boolean;
     isPrimary: boolean;
@@ -192,7 +194,7 @@ function MainScreen() {
     const newAcc: Account = {
       id: generateUuid(),
       name: accData.name,
-      type: accData.type,
+      type: accData.type ?? "bank",
       balance: accData.balance,
       currency: cycle.currency,
       includeInCalendar: accData.includeInCalendar,
@@ -439,6 +441,7 @@ function MainScreen() {
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenAccounts={() => setIsAccountsOpen(true)}
             onOpenPlanned={() => setIsPlannedOpen(true)}
+            onOpenLoans={() => setIsLoansOpen(true)}
           />
 
           <CalendarGrid
@@ -508,11 +511,18 @@ function MainScreen() {
           isOpen={isPlannedOpen}
           accounts={accounts}
           plannedPayments={plannedPayments}
-          loans={loans}
           currency={cycle.currency}
           onClose={() => setIsPlannedOpen(false)}
           onAddPlannedPayment={handleAddPlannedPayment}
           onMarkPaymentPaid={handleMarkPaymentPaid}
+        />
+
+        <LoansModal
+          isOpen={isLoansOpen}
+          accounts={accounts}
+          loans={loans}
+          currency={cycle.currency}
+          onClose={() => setIsLoansOpen(false)}
           onAddLoan={handleAddLoan}
           onMarkLoanSettled={handleMarkLoanSettled}
         />

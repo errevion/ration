@@ -336,7 +336,11 @@ Implements changes according to project specification.
 
       // 8. Push branch to origin
       ctx.ui.notify(`Pushing '${currentBranch}' to origin...`, "info");
-      const pushRes = runCmd("git", ["push", "-u", "origin", currentBranch], cwd);
+      const pushRes = runCmd(
+        "git",
+        ["push", "--force-with-lease", "-u", "origin", currentBranch],
+        cwd
+      );
       if (pushRes.status !== 0) {
         ctx.ui.notify(`git push failed: ${pushRes.stderr || pushRes.stdout}`, "error");
         return;

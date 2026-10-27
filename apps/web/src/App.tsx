@@ -14,6 +14,7 @@ import { CalendarGrid } from "./components/CalendarGrid.js";
 import { CycleHeader } from "./components/CycleHeader.js";
 import { DayDetailDrawer } from "./components/DayDetailDrawer.js";
 import { KeypadDrawer } from "./components/KeypadDrawer.js";
+import { LoansDrawer } from "./components/LoansDrawer.js";
 import { PlannedDrawer } from "./components/PlannedDrawer.js";
 import { QuickBar } from "./components/QuickBar.js";
 import { SettingsDrawer } from "./components/SettingsDrawer.js";
@@ -98,6 +99,7 @@ function TrackerApp() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccountsOpen, setIsAccountsOpen] = useState(false);
   const [isPlannedOpen, setIsPlannedOpen] = useState(false);
+  const [isLoansOpen, setIsLoansOpen] = useState(false);
 
   const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
   const [selectedDay, setSelectedDay] = useState<DailyAllocation | null>(null);
@@ -168,7 +170,7 @@ function TrackerApp() {
 
   function handleAddAccount(accData: {
     name: string;
-    type: AccountType;
+    type?: AccountType;
     balance: number;
     includeInCalendar: boolean;
     isPrimary: boolean;
@@ -176,7 +178,7 @@ function TrackerApp() {
     const newAcc: Account = {
       id: crypto.randomUUID(),
       name: accData.name,
-      type: accData.type,
+      type: accData.type ?? "bank",
       balance: accData.balance,
       currency: cycle.currency,
       includeInCalendar: accData.includeInCalendar,
@@ -453,6 +455,7 @@ function TrackerApp() {
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenAccounts={() => setIsAccountsOpen(true)}
             onOpenPlanned={() => setIsPlannedOpen(true)}
+            onOpenLoans={() => setIsLoansOpen(true)}
           />
 
           <CalendarGrid
@@ -522,11 +525,18 @@ function TrackerApp() {
           isOpen={isPlannedOpen}
           accounts={accounts}
           plannedPayments={plannedPayments}
-          loans={loans}
           currency={cycle.currency}
           onClose={() => setIsPlannedOpen(false)}
           onAddPlannedPayment={handleAddPlannedPayment}
           onMarkPaymentPaid={handleMarkPaymentPaid}
+        />
+
+        <LoansDrawer
+          isOpen={isLoansOpen}
+          accounts={accounts}
+          loans={loans}
+          currency={cycle.currency}
+          onClose={() => setIsLoansOpen(false)}
           onAddLoan={handleAddLoan}
           onMarkLoanSettled={handleMarkLoanSettled}
         />
