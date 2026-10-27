@@ -1,0 +1,38 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+out/
+coverage/
+.vite/
+*.log
+
+# Pi session files & local caches
+.pi/sessions/
+.pi/*.log
+.pi/npm/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Expo & Native builds
+.expo/
+apps/mobile/android/
+apps/mobile/ios/
+*.apk
+*.aab
+.gradle/
