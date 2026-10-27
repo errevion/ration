@@ -1,4 +1,10 @@
-import type { MoneyCycle, SpendTransaction } from "@ration/types";
+import type {
+  Account,
+  LoanRecord,
+  MoneyCycle,
+  PlannedPayment,
+  SpendTransaction,
+} from "@ration/types";
 import { describe, expect, it } from "vitest";
 import {
   computeCycleBudget,
@@ -92,5 +98,72 @@ describe("Domain Audit: Budget Engine Calculation", () => {
   it("formats full currency strings with locale separators", () => {
     expect(formatCurrency(2000000, "Rp ")).toBe("Rp 2,000,000");
     expect(formatCurrency(900, "$")).toBe("$900");
+  });
+  it("calculates safe disposable balance by quarantining planned payments and debts", () => {
+    const accounts: Account[] = [
+      {
+        id: "a0000000-0000-0000-0000-000000000001",
+        name: "Checking",
+        type: "bank",
+        balance: 6000000,
+        currency: "Rp ",
+        includeInCalendar: true,
+        isPrimary: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "a0000000-0000-0000-0000-000000000002",
+        name: "Emergency Vault",
+        type: "savings",
+        balance: 20000000,
+        currency: "Rp ",
+        includeInCalendar: false,
+        isPrimary: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    const plannedPayments: PlannedPayment[] = [
+      {
+        id: "b0000000-0000-0000-0000-000000000001",
+        name: "Apartment Rent",
+        amount: 3000000,
+        dueDate: "2025-10-15",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    const loans: LoanRecord[] = [
+      {
+        id: "c0000000-0000-0000-0000-000000000001",
+        counterparty: "Budi",
+        type: "borrow",
+        amount: 500000,
+        dueDate: "2025-10-20",
+        status: "active",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    const result = computeCycleBudget(mockCycle, [], "2025-10-01", {
+      accounts,
+      plannedPayments,
+      loans,
+    });
+
+    expect(result.actualBalance).toBe(6000000);
+    expect(result.quarantinedAmount).toBe(3500000);
+    expect(result.foreseeableBalance).toBe(2500000);
+    expect(result.dailyAllowance).toBeCloseTo(2500000 / 31, 2);
+
+    const rentDay = result.cycleDays.find((d) => d.date === "2025-10-15");
+    expect(rentDay?.hasCommitment).toBe(true);
+    expect(rentDay?.commitmentAmount).toBe(3000000);
+
+    const normalDay = result.cycleDays.find((d) => d.date === "2025-10-02");
+    expect(normalDay?.hasCommitment).toBe(false);
   });
 });

@@ -1,9 +1,9 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react-native";
 import type React from "react";
-import { useEffect, useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useI18n } from "../i18n/index.js";
-import { TOKENS } from "../theme/tokens.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useI18n } from "../i18n";
+import { TOKENS } from "../theme/tokens";
 
 interface CalendarDatePickerProps {
   isOpen: boolean;
@@ -46,13 +46,43 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
     return typeof parts[1] === "number" ? parts[1] - 1 : new Date().getMonth();
   });
 
+  const [visible, setVisible] = useState(isOpen);
+  const anim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    if (isOpen && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
-      const parts = selectedDate.split("-").map(Number);
-      setViewYear(parts[0]);
-      setViewMonth(parts[1] - 1);
+    if (isOpen) {
+      setVisible(true);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+        const parts = selectedDate.split("-").map(Number);
+        setViewYear(parts[0]);
+        setViewMonth(parts[1] - 1);
+      }
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 240,
+        useNativeDriver: true,
+      }).start();
+    } else if (visible) {
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => {
+        setVisible(false);
+      });
     }
-  }, [isOpen, selectedDate]);
+  }, [anim, isOpen, selectedDate, visible]);
+
+  const handleDismiss = useCallback(() => {
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
+      setVisible(false);
+      onClose();
+    });
+  }, [anim, onClose]);
 
   function handlePrevMonth() {
     setViewMonth((prev) => {
@@ -90,14 +120,31 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
 
   const monthLabel = `${MONTH_NAMES[viewMonth]} ${viewYear}`;
 
+  if (!visible) return null;
+
+  const backdropOpacity = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  const sheetTranslateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [450, 0],
+  });
+
   return (
-    <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={handleDismiss}>
+      <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={StyleSheet.absoluteFill}
+          onPress={handleDismiss}
+        />
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <TouchableOpacity
-              onPress={onClose}
+              onPress={handleDismiss}
               accessibilityLabel={t("tracker.close")}
               style={styles.closeButton}
             >
@@ -150,8 +197,8 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
                     activeOpacity={0.7}
                     style={[styles.cell, isSelected ? styles.cellSelected : styles.cellNormal]}
                     onPress={() => {
+                      handleDismiss();
                       onSelectDate(dateStr);
-                      onClose();
                     }}
                   >
                     <Text
@@ -167,8 +214,8 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
               );
             })}
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 };

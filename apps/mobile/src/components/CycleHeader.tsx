@@ -1,16 +1,19 @@
 import type { MoneyCycle } from "@ration/types";
-import { Settings } from "lucide-react-native";
+import { CalendarClock, Settings, Wallet } from "lucide-react-native";
 import type React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useI18n } from "../i18n/index.js";
-import { TOKENS } from "../theme/tokens.js";
+import { useI18n } from "../i18n";
+import { TOKENS } from "../theme/tokens";
 
 interface CycleHeaderProps {
   cycle: MoneyCycle;
-  remainingBalance: number;
+  foreseeableBalance: number;
+  actualBalance: number;
   remainingDaysCount: number;
   dailyAllowance: number;
   onOpenSettings: () => void;
+  onOpenAccounts: () => void;
+  onOpenCommitments: () => void;
 }
 
 function formatDisplayDate(isoDate: string): string {
@@ -36,10 +39,13 @@ function formatDisplayDate(isoDate: string): string {
 
 export const CycleHeader: React.FC<CycleHeaderProps> = ({
   cycle,
-  remainingBalance,
+  foreseeableBalance,
+  actualBalance,
   remainingDaysCount,
   dailyAllowance,
   onOpenSettings,
+  onOpenAccounts,
+  onOpenCommitments,
 }) => {
   const { t } = useI18n();
 
@@ -51,7 +57,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   const dailyText = `${cycle.currency}${roundedDaily.toLocaleString()}`;
   const daysText = t("tracker.daysLeft", { days: remainingDaysCount });
   const paceText = t("tracker.perDay", { amount: dailyText });
-  const subtext = `${daysText} • ${paceText}`;
+  const actualText = `${t("tracker.actualBalance")}: ${cycle.currency}${actualBalance.toLocaleString()}`;
 
   return (
     <View style={styles.container}>
@@ -69,12 +75,30 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
       </View>
 
       <View style={styles.balanceSection}>
-        <Text style={styles.balanceLabel}>{t("tracker.totalBalance")}</Text>
+        <Text style={styles.balanceLabel}>{t("tracker.safeToSpend")}</Text>
         <Text style={styles.balanceValue}>
           {cycle.currency}
-          {remainingBalance.toLocaleString()}
+          {foreseeableBalance.toLocaleString()}
         </Text>
-        <Text style={styles.subtext}>{subtext}</Text>
+        <View style={styles.subtextRow}>
+          <Text style={styles.subtextActual}>{actualText}</Text>
+          <Text style={styles.subtextDivider}>|</Text>
+          <Text style={styles.subtextPace}>{daysText}</Text>
+          <Text style={styles.subtextDivider}>|</Text>
+          <Text style={styles.subtextPace}>{paceText}</Text>
+        </View>
+      </View>
+
+      <View style={styles.hubRow}>
+        <TouchableOpacity activeOpacity={0.7} style={styles.hubPill} onPress={onOpenAccounts}>
+          <Wallet size={15} color={TOKENS.colors.textPrimary} />
+          <Text style={styles.hubPillText}>{t("tracker.accounts")}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity activeOpacity={0.7} style={styles.hubPill} onPress={onOpenCommitments}>
+          <CalendarClock size={15} color={TOKENS.colors.textPrimary} />
+          <Text style={styles.hubPillText}>{t("tracker.commitments")}</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -89,7 +113,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: TOKENS.spacing.md,
+    marginBottom: TOKENS.spacing.sm,
   },
   cycleRangeText: {
     fontSize: 12,
@@ -125,10 +149,46 @@ const styles = StyleSheet.create({
     color: TOKENS.colors.textPrimary,
     letterSpacing: -1,
   },
-  subtext: {
-    fontSize: 13,
+  subtextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: TOKENS.spacing.xs,
+  },
+  subtextActual: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: TOKENS.colors.textSecondary,
+  },
+  subtextDivider: {
+    fontSize: 11,
+    color: TOKENS.colors.border,
+  },
+  subtextPace: {
+    fontSize: 12,
     fontWeight: "600",
     color: TOKENS.colors.primary,
-    marginTop: TOKENS.spacing.xs,
+  },
+  hubRow: {
+    flexDirection: "row",
+    gap: TOKENS.spacing.sm,
+    marginTop: TOKENS.spacing.md,
+  },
+  hubPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: TOKENS.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    borderRadius: TOKENS.radii.pill,
+    paddingHorizontal: TOKENS.spacing.md,
+    paddingVertical: TOKENS.spacing.xs,
+  },
+  hubPillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: TOKENS.colors.textPrimary,
   },
 });

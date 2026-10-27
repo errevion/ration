@@ -1,8 +1,9 @@
 import type { MoneyCycle } from "@ration/types";
 import { Calendar, RotateCcw, X } from "lucide-react-native";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Modal,
   ScrollView,
   StyleSheet,
@@ -11,10 +12,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useI18n } from "../i18n/index.js";
-import { TOKENS } from "../theme/tokens.js";
-import { formatIsoDate } from "../utils/budgetEngine.js";
-import { CalendarDatePicker } from "./CalendarDatePicker.js";
+import { useI18n } from "../i18n";
+import { TOKENS } from "../theme/tokens";
+import { formatIsoDate } from "../utils/budgetEngine";
+import { CalendarDatePicker } from "./CalendarDatePicker";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -86,6 +87,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [activePickerTarget, setActivePickerTarget] = useState<"start" | "end" | "current" | null>(
     null
   );
+  const [visible, setVisible] = useState(isOpen);
+  const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isOpen) {
@@ -94,8 +97,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setEndDate(cycle.endDate);
       setActiveRefDate(referenceDate);
       setActivePickerTarget(null);
+      setVisible(true);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 240,
+        useNativeDriver: true,
+      }).start();
+    } else if (visible) {
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => {
+        setVisible(false);
+      });
     }
-  }, [isOpen, cycle, referenceDate]);
+  }, [anim, cycle, isOpen, referenceDate, visible]);
+
+  const handleDismiss = useCallback(() => {
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
+      setVisible(false);
+      onClose();
+    });
+  }, [anim, onClose]);
 
   const isDatePatternValid =
     /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate);
@@ -105,13 +133,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   function handleSave() {
     if (!isValid) return;
+    handleDismiss();
     onSave({
       currency,
       startDate,
       endDate,
       referenceDate: activeRefDate,
     });
-    onClose();
   }
 
   function handleApplyCalendarMonth() {
@@ -130,15 +158,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setActiveRefDate(formatIsoDate(new Date()));
   }
 
+  if (!visible) return null;
+
+  const backdropOpacity = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  const sheetTranslateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [550, 0],
+  });
+
   return (
     <>
-      <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
+      <Modal visible={visible} transparent animationType="none" onRequestClose={handleDismiss}>
+        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={StyleSheet.absoluteFill}
+            onPress={handleDismiss}
+          />
+          <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
             <View style={styles.header}>
               <Text style={styles.title}>{t("settings.title")}</Text>
               <TouchableOpacity
-                onPress={onClose}
+                onPress={handleDismiss}
                 accessibilityLabel={t("tracker.close")}
                 style={styles.closeButton}
               >
@@ -301,8 +346,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {t("settings.saveSettings")}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
 
       <CalendarDatePicker

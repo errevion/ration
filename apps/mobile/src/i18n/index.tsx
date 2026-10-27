@@ -1,8 +1,8 @@
 import type { Locale } from "@ration/types";
 import type React from "react";
 import { createContext, useContext, useMemo, useState } from "react";
-import { en } from "./en.js";
-import { id } from "./id.js";
+import { en } from "./en";
+import { id } from "./id";
 
 type NestedKeyOf<ObjectType extends object> = {
   [Key in keyof ObjectType & (string | number)]: ObjectType[Key] extends object

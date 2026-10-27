@@ -1,6 +1,17 @@
-import type { DailyAllocation, MoneyCycle, SpendTransaction } from "@ration/types";
+import type {
+  Account,
+  AccountType,
+  DailyAllocation,
+  LoanRecord,
+  LoanType,
+  MoneyCycle,
+  PlannedPayment,
+  SpendTransaction,
+} from "@ration/types";
 import { useMemo, useState } from "react";
+import { AccountsDrawer } from "./components/AccountsDrawer.js";
 import { CalendarGrid } from "./components/CalendarGrid.js";
+import { CommitmentsDrawer } from "./components/CommitmentsDrawer.js";
 import { CycleHeader } from "./components/CycleHeader.js";
 import { DayDetailDrawer } from "./components/DayDetailDrawer.js";
 import { KeypadDrawer } from "./components/KeypadDrawer.js";
@@ -41,69 +52,259 @@ function getInitialCycle(): MoneyCycle {
     name: "Monthly Pay Period",
     startDate,
     endDate,
-    startingBalance: 900,
+    startingBalance: 0,
     currency: "$",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 }
 
-function getInitialTransactions(cycleId: string, startDateStr: string): SpendTransaction[] {
-  const [year, month, day] = startDateStr.split("-").map(Number);
-  const start = new Date(year, month - 1, day, 12, 0, 0);
-
-  const tx1Date = new Date(start);
-  tx1Date.setDate(tx1Date.getDate() + 1);
-
-  const tx2Date = new Date(start);
-  tx2Date.setDate(tx2Date.getDate() + 3);
-
+function getInitialAccounts(currency: string): Account[] {
   return [
     {
-      id: "d0000000-0000-0000-0000-000000000001",
-      cycleId,
-      date: formatIsoDate(tx1Date),
-      amount: 25,
-      type: "spend",
+      id: "a0000000-0000-0000-0000-000000000001",
+      name: "Main Account",
+      type: "bank",
+      balance: 0,
+      currency,
+      includeInCalendar: true,
+      isPrimary: true,
       createdAt: new Date().toISOString(),
-    },
-    {
-      id: "d0000000-0000-0000-0000-000000000002",
-      cycleId,
-      date: formatIsoDate(tx2Date),
-      amount: 42,
-      type: "spend",
-      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
   ];
 }
 
+function getInitialTransactions(): SpendTransaction[] {
+  return [];
+}
 function TrackerApp() {
   const [cycle, setCycle] = useState<MoneyCycle>(getInitialCycle);
-  const [transactions, setTransactions] = useState<SpendTransaction[]>(() =>
-    getInitialTransactions(cycle.id, cycle.startDate)
-  );
+  const [accounts, setAccounts] = useState<Account[]>(() => getInitialAccounts(cycle.currency));
+  const [transactions, setTransactions] = useState<SpendTransaction[]>(getInitialTransactions);
+  const [plannedPayments, setPlannedPayments] = useState<PlannedPayment[]>([]);
+  const [loans, setLoans] = useState<LoanRecord[]>([]);
+
   const [referenceDate, setReferenceDate] = useState<string>(() => formatIsoDate(new Date()));
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAccountsOpen, setIsAccountsOpen] = useState(false);
+  const [isCommitmentsOpen, setIsCommitmentsOpen] = useState(false);
+
   const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
   const [selectedDay, setSelectedDay] = useState<DailyAllocation | null>(null);
 
   const computation = useMemo(() => {
-    return computeCycleBudget(cycle, transactions, referenceDate);
-  }, [cycle, transactions, referenceDate]);
+    return computeCycleBudget(cycle, transactions, referenceDate, {
+      accounts,
+      plannedPayments,
+      loans,
+    });
+  }, [cycle, transactions, referenceDate, accounts, plannedPayments, loans]);
 
-  function handleRecordTransaction(amount: number) {
+  function handleRecordTransaction(amount: number, accountId?: string) {
+    const targetAccountId = accountId || accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id;
+
     const newTx: SpendTransaction = {
       id: crypto.randomUUID(),
       cycleId: cycle.id,
       date: referenceDate,
       amount,
       type: keypadMode,
+      accountId: targetAccountId,
+      createdAt: new Date().toISOString(),
+    };
+
+    setTransactions((prev) => [...prev, newTx]);
+
+    if (targetAccountId) {
+      setAccounts((prev) =>
+        prev.map((acc) => {
+          if (acc.id === targetAccountId) {
+            const updated = keypadMode === "spend" ? acc.balance - amount : acc.balance + amount;
+            return { ...acc, balance: updated, updatedAt: new Date().toISOString() };
+          }
+          return acc;
+        })
+      );
+    }
+
+    setIsKeypadOpen(false);
+  }
+
+  function handleAddAccount(accData: {
+    name: string;
+    type: AccountType;
+    balance: number;
+    includeInCalendar: boolean;
+    isPrimary: boolean;
+  }) {
+    const newAcc: Account = {
+      id: crypto.randomUUID(),
+      name: accData.name,
+      type: accData.type,
+      balance: accData.balance,
+      currency: cycle.currency,
+      includeInCalendar: accData.includeInCalendar,
+      isPrimary: accData.isPrimary || accounts.length === 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setAccounts((prev) => {
+      if (newAcc.isPrimary) {
+        return [...prev.map((a) => ({ ...a, isPrimary: false })), newAcc];
+      }
+      return [...prev, newAcc];
+    });
+  }
+
+  function handleToggleIncludeAccount(accountId: string) {
+    setAccounts((prev) =>
+      prev.map((a) => (a.id === accountId ? { ...a, includeInCalendar: !a.includeInCalendar } : a))
+    );
+  }
+
+  function handleSetPrimaryAccount(accountId: string) {
+    setAccounts((prev) => prev.map((a) => ({ ...a, isPrimary: a.id === accountId })));
+  }
+  function handleAddPlannedPayment(paymentData: {
+    name: string;
+    amount: number;
+    dueDate: string;
+    accountId?: string;
+  }) {
+    const newPayment: PlannedPayment = {
+      id: crypto.randomUUID(),
+      name: paymentData.name,
+      amount: paymentData.amount,
+      dueDate: paymentData.dueDate,
+      accountId: paymentData.accountId,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    setPlannedPayments((prev) => [...prev, newPayment]);
+  }
+
+  function handleMarkPaymentPaid(paymentId: string) {
+    const payment = plannedPayments.find((p) => p.id === paymentId);
+    if (!payment) return;
+
+    setPlannedPayments((prev) =>
+      prev.map((p) => (p.id === paymentId ? { ...p, status: "completed" } : p))
+    );
+
+    const targetAccId =
+      payment.accountId || accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id;
+    if (targetAccId) {
+      setAccounts((prev) =>
+        prev.map((acc) =>
+          acc.id === targetAccId
+            ? { ...acc, balance: acc.balance - payment.amount, updatedAt: new Date().toISOString() }
+            : acc
+        )
+      );
+    }
+
+    const newTx: SpendTransaction = {
+      id: crypto.randomUUID(),
+      cycleId: cycle.id,
+      date: referenceDate,
+      amount: payment.amount,
+      type: "spend",
+      accountId: targetAccId,
+      notes: payment.name,
       createdAt: new Date().toISOString(),
     };
     setTransactions((prev) => [...prev, newTx]);
-    setIsKeypadOpen(false);
+  }
+
+  function handleAddLoan(loanData: {
+    counterparty: string;
+    type: LoanType;
+    amount: number;
+    dueDate: string;
+    accountId?: string;
+    notes?: string;
+  }) {
+    const newLoan: LoanRecord = {
+      id: crypto.randomUUID(),
+      counterparty: loanData.counterparty,
+      type: loanData.type,
+      amount: loanData.amount,
+      dueDate: loanData.dueDate,
+      accountId: loanData.accountId,
+      status: "active",
+      notes: loanData.notes,
+      createdAt: new Date().toISOString(),
+    };
+    setLoans((prev) => [...prev, newLoan]);
+
+    const targetAccId =
+      loanData.accountId || accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id;
+    if (targetAccId) {
+      setAccounts((prev) =>
+        prev.map((acc) => {
+          if (acc.id === targetAccId) {
+            const updated =
+              loanData.type === "borrow"
+                ? acc.balance + loanData.amount
+                : acc.balance - loanData.amount;
+            return { ...acc, balance: updated, updatedAt: new Date().toISOString() };
+          }
+          return acc;
+        })
+      );
+    }
+
+    const newTx: SpendTransaction = {
+      id: crypto.randomUUID(),
+      cycleId: cycle.id,
+      date: referenceDate,
+      amount: loanData.amount,
+      type: loanData.type === "borrow" ? "income" : "spend",
+      accountId: targetAccId,
+      notes: loanData.counterparty,
+      createdAt: new Date().toISOString(),
+    };
+    setTransactions((prev) => [...prev, newTx]);
+  }
+
+  function handleMarkLoanSettled(loanId: string) {
+    const loan = loans.find((l) => l.id === loanId);
+    if (!loan) return;
+
+    setLoans((prev) =>
+      prev.map((l) =>
+        l.id === loanId ? { ...l, status: "settled", settledDate: referenceDate } : l
+      )
+    );
+
+    if (loan.type === "lend") {
+      const targetAccId =
+        loan.accountId || accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id;
+      if (targetAccId) {
+        setAccounts((prev) =>
+          prev.map((acc) =>
+            acc.id === targetAccId
+              ? { ...acc, balance: acc.balance + loan.amount, updatedAt: new Date().toISOString() }
+              : acc
+          )
+        );
+      }
+
+      const newTx: SpendTransaction = {
+        id: crypto.randomUUID(),
+        cycleId: cycle.id,
+        date: referenceDate,
+        amount: loan.amount,
+        type: "income",
+        accountId: targetAccId,
+        notes: loan.counterparty,
+        createdAt: new Date().toISOString(),
+      };
+      setTransactions((prev) => [...prev, newTx]);
+    }
   }
 
   function handleUpdateCycleSettings(settings: {
@@ -125,7 +326,6 @@ function TrackerApp() {
   }
 
   const todayQuota = Math.floor(computation.dailyAllowance);
-
   return (
     <div
       style={{
@@ -168,10 +368,13 @@ function TrackerApp() {
         >
           <CycleHeader
             cycle={cycle}
-            remainingBalance={computation.remainingBalance}
+            foreseeableBalance={computation.foreseeableBalance}
+            actualBalance={computation.actualBalance}
             remainingDaysCount={computation.remainingDaysCount}
             dailyAllowance={computation.dailyAllowance}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenAccounts={() => setIsAccountsOpen(true)}
+            onOpenCommitments={() => setIsCommitmentsOpen(true)}
           />
 
           <CalendarGrid
@@ -200,6 +403,7 @@ function TrackerApp() {
           isOpen={isKeypadOpen}
           currency={cycle.currency}
           mode={keypadMode}
+          accounts={accounts}
           onClose={() => setIsKeypadOpen(false)}
           onConfirm={handleRecordTransaction}
         />
@@ -216,7 +420,34 @@ function TrackerApp() {
           day={selectedDay}
           currency={cycle.currency}
           transactions={transactions}
+          plannedPayments={plannedPayments}
+          loans={loans}
           onClose={() => setSelectedDay(null)}
+          onMarkPaymentPaid={handleMarkPaymentPaid}
+          onMarkLoanSettled={handleMarkLoanSettled}
+        />
+
+        <AccountsDrawer
+          isOpen={isAccountsOpen}
+          accounts={accounts}
+          currency={cycle.currency}
+          onClose={() => setIsAccountsOpen(false)}
+          onAddAccount={handleAddAccount}
+          onToggleInclude={handleToggleIncludeAccount}
+          onSetPrimary={handleSetPrimaryAccount}
+        />
+
+        <CommitmentsDrawer
+          isOpen={isCommitmentsOpen}
+          accounts={accounts}
+          plannedPayments={plannedPayments}
+          loans={loans}
+          currency={cycle.currency}
+          onClose={() => setIsCommitmentsOpen(false)}
+          onAddPlannedPayment={handleAddPlannedPayment}
+          onMarkPaymentPaid={handleMarkPaymentPaid}
+          onAddLoan={handleAddLoan}
+          onMarkLoanSettled={handleMarkLoanSettled}
         />
       </div>
     </div>

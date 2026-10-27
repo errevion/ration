@@ -1,4 +1,17 @@
-import type { DailyAllocation, MoneyCycle, SpendTransaction } from "@ration/types";
+import type {
+  Account,
+  DailyAllocation,
+  LoanRecord,
+  MoneyCycle,
+  PlannedPayment,
+  SpendTransaction,
+} from "@ration/types";
+
+export interface BudgetEngineOptions {
+  accounts?: Account[];
+  plannedPayments?: PlannedPayment[];
+  loans?: LoanRecord[];
+}
 
 export interface CycleComputation {
   cycleDays: DailyAllocation[];
@@ -9,6 +22,9 @@ export interface CycleComputation {
   totalSpent: number;
   totalIncome: number;
   incomeToday: number;
+  actualBalance: number;
+  foreseeableBalance: number;
+  quarantinedAmount: number;
   remainingBalance: number;
   remainingDaysCount: number;
   dailyAllowance: number;
@@ -34,7 +50,8 @@ export function getMondayFirstDayOfWeek(date: Date): number {
 export function computeCycleBudget(
   cycle: MoneyCycle,
   transactions: SpendTransaction[],
-  referenceDateStr?: string
+  referenceDateStr?: string,
+  options?: BudgetEngineOptions
 ): CycleComputation {
   const referenceDate = referenceDateStr ?? formatIsoDate(new Date());
 
@@ -114,20 +131,65 @@ export function computeCycleBudget(
 
   const totalSpent = totalSpentPast + spentToday;
   const totalIncome = totalIncomePast + incomeToday;
-  const remainingBalance = Math.max(0, cycle.startingBalance + totalIncome - totalSpent);
-  const dailyAllowance = remainingDaysCount > 0 ? remainingBalance / remainingDaysCount : 0;
 
-  const cycleDays: DailyAllocation[] = rawDays.map((day) => ({
-    date: day.date,
-    dayNumber: day.dayNumber,
-    dayOfWeek: day.dayOfWeek,
-    isPast: day.isPast,
-    isToday: day.isToday,
-    isFuture: day.isFuture,
-    spentAmount: day.spentAmount,
-    incomeAmount: day.incomeAmount,
-    projectedQuota: day.isPast ? day.spentAmount : Math.floor(dailyAllowance),
-  }));
+  let actualBalance = Math.max(0, cycle.startingBalance + totalIncome - totalSpent);
+  if (options?.accounts && options.accounts.length > 0) {
+    actualBalance = options.accounts
+      .filter((acc) => acc.includeInCalendar)
+      .reduce((sum, acc) => sum + acc.balance, 0);
+  }
+
+  let quarantinedAmount = 0;
+  const commitmentByDate = new Map<string, number>();
+
+  if (options?.plannedPayments) {
+    for (const p of options.plannedPayments) {
+      if (p.status === "pending" && p.dueDate >= referenceDate && p.dueDate <= cycle.endDate) {
+        quarantinedAmount += p.amount;
+      }
+      if (p.status === "pending") {
+        const cur = commitmentByDate.get(p.dueDate) ?? 0;
+        commitmentByDate.set(p.dueDate, cur + p.amount);
+      }
+    }
+  }
+
+  if (options?.loans) {
+    for (const l of options.loans) {
+      if (
+        l.type === "borrow" &&
+        l.status === "active" &&
+        l.dueDate >= referenceDate &&
+        l.dueDate <= cycle.endDate
+      ) {
+        quarantinedAmount += l.amount;
+      }
+      if (l.type === "borrow" && l.status === "active") {
+        const cur = commitmentByDate.get(l.dueDate) ?? 0;
+        commitmentByDate.set(l.dueDate, cur + l.amount);
+      }
+    }
+  }
+
+  const foreseeableBalance = Math.max(0, actualBalance - quarantinedAmount);
+  const dailyAllowance = remainingDaysCount > 0 ? foreseeableBalance / remainingDaysCount : 0;
+
+  const cycleDays: DailyAllocation[] = rawDays.map((day) => {
+    const dayCommitment = commitmentByDate.get(day.date) ?? 0;
+    return {
+      date: day.date,
+      dayNumber: day.dayNumber,
+      dayOfWeek: day.dayOfWeek,
+      isPast: day.isPast,
+      isToday: day.isToday,
+      isFuture: day.isFuture,
+      spentAmount: day.spentAmount,
+      incomeAmount: day.incomeAmount,
+      projectedQuota: day.isPast ? day.spentAmount : Math.floor(dailyAllowance),
+      hasCommitment: dayCommitment > 0,
+      commitmentAmount: dayCommitment,
+    };
+  });
 
   const leadingEmptyDays = cycleDays.length > 0 ? cycleDays[0].dayOfWeek : 0;
   const totalSlotsSoFar = leadingEmptyDays + cycleDays.length;
@@ -143,7 +205,10 @@ export function computeCycleBudget(
     totalSpent,
     totalIncome,
     incomeToday,
-    remainingBalance,
+    actualBalance,
+    foreseeableBalance,
+    quarantinedAmount,
+    remainingBalance: foreseeableBalance,
     remainingDaysCount,
     dailyAllowance,
   };
