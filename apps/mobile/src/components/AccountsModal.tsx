@@ -1,8 +1,9 @@
 import type { Account, AccountType } from "@ration/types";
-import { Plus, Star, X } from "lucide-react-native";
+import { Plus, Star, Trash2, X } from "lucide-react-native";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Modal,
   ScrollView,
@@ -31,6 +32,7 @@ interface AccountsModalProps {
   }) => void;
   onToggleInclude: (accountId: string) => void;
   onSetPrimary: (accountId: string) => void;
+  onDeleteAccount: (accountId: string) => void;
 }
 
 const ACCOUNT_TYPES: AccountType[] = ["bank", "cash", "wallet", "savings", "other"];
@@ -43,6 +45,7 @@ export const AccountsModal: React.FC<AccountsModalProps> = ({
   onAddAccount,
   onToggleInclude,
   onSetPrimary,
+  onDeleteAccount,
 }) => {
   const { t } = useI18n();
   const [visible, setVisible] = useState(isOpen);
@@ -113,6 +116,17 @@ export const AccountsModal: React.FC<AccountsModalProps> = ({
       default:
         return t("accounts.typeOther");
     }
+  }
+
+  function handleDeleteAccount(acc: Account) {
+    if (accounts.length <= 1) {
+      Alert.alert(t("accounts.deleteAccount"), t("accounts.cannotDeleteLast"));
+      return;
+    }
+    Alert.alert(t("accounts.deleteAccount"), t("accounts.deleteConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("common.delete"), style: "destructive", onPress: () => onDeleteAccount(acc.id) },
+    ]);
   }
 
   if (!visible) return null;
@@ -193,15 +207,25 @@ export const AccountsModal: React.FC<AccountsModalProps> = ({
                         />
                       </View>
 
-                      {!acc.isPrimary && (
+                      <View style={styles.rightActionsRow}>
+                        {!acc.isPrimary && (
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            style={styles.setPrimaryButton}
+                            onPress={() => onSetPrimary(acc.id)}
+                          >
+                            <Text style={styles.setPrimaryText}>{t("accounts.isPrimary")}</Text>
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                           activeOpacity={0.7}
-                          style={styles.setPrimaryButton}
-                          onPress={() => onSetPrimary(acc.id)}
+                          style={styles.deleteButton}
+                          onPress={() => handleDeleteAccount(acc)}
+                          accessibilityLabel={t("accounts.deleteAccount")}
                         >
-                          <Text style={styles.setPrimaryText}>{t("accounts.isPrimary")}</Text>
+                          <Trash2 size={15} color={TOKENS.colors.danger} />
                         </TouchableOpacity>
-                      )}
+                      </View>
                     </View>
                   </View>
                 ))
@@ -528,5 +552,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: TOKENS.colors.textOnPrimary,
+  },
+  rightActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  deleteButton: {
+    padding: 4,
   },
 });

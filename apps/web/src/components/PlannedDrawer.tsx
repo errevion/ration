@@ -7,7 +7,7 @@ import { TOKENS } from "../theme/tokens.js";
 import { formatIsoDate } from "../utils/budgetEngine.js";
 import { formatCurrency } from "../utils/formatters.js";
 
-interface CommitmentsDrawerProps {
+interface PlannedDrawerProps {
   isOpen: boolean;
   accounts: Account[];
   plannedPayments: PlannedPayment[];
@@ -18,6 +18,7 @@ interface CommitmentsDrawerProps {
     name: string;
     amount: number;
     dueDate: string;
+    type: "spend" | "income";
     accountId?: string;
   }) => void;
   onMarkPaymentPaid: (paymentId: string) => void;
@@ -32,7 +33,7 @@ interface CommitmentsDrawerProps {
   onMarkLoanSettled: (loanId: string) => void;
 }
 
-export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
+export const PlannedDrawer: React.FC<PlannedDrawerProps> = ({
   isOpen,
   accounts,
   plannedPayments,
@@ -49,6 +50,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
 
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [paymentName, setPaymentName] = useState("");
+  const [paymentType, setPaymentType] = useState<"spend" | "income">("spend");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDueDate, setPaymentDueDate] = useState(() => formatIsoDate(new Date()));
   const [paymentAccountId, setPaymentAccountId] = useState<string | undefined>(
@@ -72,10 +74,12 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
       name: paymentName.trim(),
       amount: amt,
       dueDate: paymentDueDate,
+      type: paymentType,
       accountId: paymentAccountId,
     });
     setPaymentName("");
     setPaymentAmount("");
+    setPaymentType("spend");
     setIsAddingPayment(false);
   }
 
@@ -140,7 +144,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: "16px", fontWeight: 700, color: TOKENS.colors.textPrimary }}>
-            {t("commitments.title")}
+            {t("planned.title")}
           </span>
           <button
             type="button"
@@ -186,7 +190,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
               cursor: "pointer",
             }}
           >
-            {t("commitments.tabPlanned")}
+            {t("planned.tabPlanned")}
           </button>
           <button
             type="button"
@@ -204,7 +208,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
               cursor: "pointer",
             }}
           >
-            {t("commitments.tabLoans")}
+            {t("planned.tabLoans")}
           </button>
         </div>
         {activeTab === "planned" ? (
@@ -218,7 +222,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                   fontSize: "13px",
                 }}
               >
-                {t("commitments.emptyPlanned")}
+                {t("planned.emptyPlanned")}
               </div>
             ) : (
               plannedPayments.map((item) => (
@@ -298,9 +302,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                         textTransform: "uppercase",
                       }}
                     >
-                      {item.status === "completed"
-                        ? t("commitments.paid")
-                        : t("commitments.activeDebt")}
+                      {item.status === "completed" ? t("planned.paid") : t("planned.activeDebt")}
                     </span>
 
                     {item.status === "pending" && (
@@ -320,7 +322,11 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                         }}
                       >
                         <Check size={14} />
-                        <span>{t("commitments.markPaid")}</span>
+                        <span>
+                          {item.type === "income"
+                            ? t("planned.markReceived")
+                            : t("planned.markPaid")}
+                        </span>
                       </button>
                     )}
                   </div>
@@ -342,13 +348,13 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                 <span
                   style={{ fontSize: "14px", fontWeight: 700, color: TOKENS.colors.textPrimary }}
                 >
-                  {t("commitments.newPayment")}
+                  {t("planned.newPayment")}
                 </span>
                 <input
                   type="text"
                   value={paymentName}
                   onChange={(e) => setPaymentName(e.target.value)}
-                  placeholder={t("commitments.namePlaceholder")}
+                  placeholder={t("planned.namePlaceholder")}
                   style={{
                     height: "40px",
                     backgroundColor: TOKENS.colors.surface,
@@ -365,7 +371,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                   type="number"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder={t("commitments.amount")}
+                  placeholder={t("planned.amount")}
                   style={{
                     height: "40px",
                     backgroundColor: TOKENS.colors.surface,
@@ -483,7 +489,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                 }}
               >
                 <Plus size={16} />
-                <span>{t("commitments.newPayment")}</span>
+                <span>{t("planned.newPayment")}</span>
               </button>
             )}
           </div>
@@ -498,7 +504,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                   fontSize: "13px",
                 }}
               >
-                {t("commitments.emptyLoans")}
+                {t("planned.emptyLoans")}
               </div>
             ) : (
               loans.map((item) => {
@@ -542,7 +548,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                             }}
                           >
                             {isBorrow ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
-                            {isBorrow ? t("commitments.borrowLabel") : t("commitments.lendLabel")}
+                            {isBorrow ? t("planned.borrowLabel") : t("planned.lendLabel")}
                           </span>
                           <span
                             style={{
@@ -586,10 +592,10 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                     >
                       <span style={{ fontSize: "12px", color: TOKENS.colors.textMuted }}>
                         {item.status === "settled"
-                          ? t("commitments.settled")
+                          ? t("planned.settled")
                           : isBorrow
-                            ? t("commitments.activeDebt")
-                            : t("commitments.activeReceivable")}
+                            ? t("planned.activeDebt")
+                            : t("planned.activeReceivable")}
                       </span>
 
                       {item.status === "active" && (
@@ -609,7 +615,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                           }}
                         >
                           <Check size={14} />
-                          <span>{t("commitments.markSettled")}</span>
+                          <span>{t("planned.markSettled")}</span>
                         </button>
                       )}
                     </div>
@@ -632,7 +638,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                 <span
                   style={{ fontSize: "14px", fontWeight: 700, color: TOKENS.colors.textPrimary }}
                 >
-                  {t("commitments.newLoan")}
+                  {t("planned.newLoan")}
                 </span>
 
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -655,7 +661,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                       cursor: "pointer",
                     }}
                   >
-                    {t("commitments.borrow")}
+                    {t("planned.borrow")}
                   </button>
                   <button
                     type="button"
@@ -676,7 +682,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                       cursor: "pointer",
                     }}
                   >
-                    {t("commitments.lend")}
+                    {t("planned.lend")}
                   </button>
                 </div>
 
@@ -684,7 +690,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                   type="text"
                   value={loanCounterparty}
                   onChange={(e) => setLoanCounterparty(e.target.value)}
-                  placeholder={t("commitments.counterpartyPlaceholder")}
+                  placeholder={t("planned.counterpartyPlaceholder")}
                   style={{
                     height: "40px",
                     backgroundColor: TOKENS.colors.surface,
@@ -701,7 +707,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                   type="number"
                   value={loanAmount}
                   onChange={(e) => setLoanAmount(e.target.value)}
-                  placeholder={t("commitments.amount")}
+                  placeholder={t("planned.amount")}
                   style={{
                     height: "40px",
                     backgroundColor: TOKENS.colors.surface,
@@ -736,7 +742,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                   type="text"
                   value={loanNotes}
                   onChange={(e) => setLoanNotes(e.target.value)}
-                  placeholder={t("commitments.notesPlaceholder")}
+                  placeholder={t("planned.notesPlaceholder")}
                   style={{
                     height: "40px",
                     backgroundColor: TOKENS.colors.surface,
@@ -756,8 +762,8 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                       style={{ fontSize: "11px", fontWeight: 600, color: TOKENS.colors.textMuted }}
                     >
                       {loanType === "borrow"
-                        ? t("commitments.depositAccount")
-                        : t("commitments.deductAccount")}
+                        ? t("planned.depositAccount")
+                        : t("planned.deductAccount")}
                     </span>
                     <select
                       value={loanAccountId}
@@ -839,7 +845,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({
                 }}
               >
                 <Plus size={16} />
-                <span>{t("commitments.newLoan")}</span>
+                <span>{t("planned.newLoan")}</span>
               </button>
             )}
           </div>

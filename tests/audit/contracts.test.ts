@@ -1,6 +1,7 @@
 import {
   AccountSchema,
   AccountTypeSchema,
+  BackupDataSchema,
   CreateAccountSchema,
   CreateDistributionRecordSchema,
   CreateLoanRecordSchema,
@@ -295,5 +296,36 @@ describe("Domain Audit: Contract & Schema Parity", () => {
     expect(CreateLoanRecordSchema.safeParse(validCreate).success).toBe(true);
     expect(LoanTypeSchema.safeParse("invest").success).toBe(false);
     expect(LoanStatusSchema.safeParse("closed").success).toBe(false);
+  });
+  it("validates backup data schema", () => {
+    const validBackup = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      cycle: {
+        id: "c0000000-0000-0000-0000-000000000001",
+        name: "Cycle",
+        startDate: "2025-10-01",
+        endDate: "2025-10-31",
+        startingBalance: 0,
+        currency: "$",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      accounts: [],
+      transactions: [],
+      plannedPayments: [
+        {
+          id: "b0000000-0000-0000-0000-000000000001",
+          name: "Payday Salary",
+          amount: 5000000,
+          dueDate: "2025-10-25",
+          type: "income",
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      loans: [],
+    };
+    expect(BackupDataSchema.safeParse(validBackup).success).toBe(true);
   });
 });
