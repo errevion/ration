@@ -83,6 +83,90 @@ export const UpdateCycleSettingsSchema = z.object({
 });
 export type UpdateCycleSettingsDto = z.infer<typeof UpdateCycleSettingsSchema>;
 
+export const AccountTypeSchema = z.enum(["cash", "bank", "wallet", "savings", "other"]);
+export type AccountType = z.infer<typeof AccountTypeSchema>;
+
+export const AccountSchema = z.object({
+  id: EntityIdSchema,
+  name: z.string().min(1).max(64),
+  type: AccountTypeSchema.default("bank"),
+  balance: z.number().default(0),
+  currency: z.string().min(1).max(8).default("$"),
+  includeInCalendar: z.boolean().default(true),
+  isPrimary: z.boolean().default(false),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type Account = z.infer<typeof AccountSchema>;
+
+export const CreateAccountSchema = AccountSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  id: EntityIdSchema.optional(),
+  currency: z.string().min(1).max(8).default("$"),
+});
+export type CreateAccountDto = z.infer<typeof CreateAccountSchema>;
+
+export const UpdateAccountSchema = CreateAccountSchema.partial();
+export type UpdateAccountDto = z.infer<typeof UpdateAccountSchema>;
+
+export const PlannedPaymentStatusSchema = z.enum(["pending", "completed", "cancelled"]);
+export type PlannedPaymentStatus = z.infer<typeof PlannedPaymentStatusSchema>;
+
+export const PlannedPaymentSchema = z.object({
+  id: EntityIdSchema,
+  name: z.string().min(1).max(128),
+  amount: z.number().positive(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  accountId: EntityIdSchema.optional(),
+  status: PlannedPaymentStatusSchema.default("pending"),
+  createdAt: z.string().datetime(),
+});
+export type PlannedPayment = z.infer<typeof PlannedPaymentSchema>;
+
+export const CreatePlannedPaymentSchema = PlannedPaymentSchema.omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  id: EntityIdSchema.optional(),
+  status: PlannedPaymentStatusSchema.default("pending"),
+});
+export type CreatePlannedPaymentDto = z.infer<typeof CreatePlannedPaymentSchema>;
+
+export const LoanTypeSchema = z.enum(["borrow", "lend"]);
+export type LoanType = z.infer<typeof LoanTypeSchema>;
+
+export const LoanStatusSchema = z.enum(["active", "settled"]);
+export type LoanStatus = z.infer<typeof LoanStatusSchema>;
+
+export const LoanRecordSchema = z.object({
+  id: EntityIdSchema,
+  counterparty: z.string().min(1).max(128),
+  type: LoanTypeSchema,
+  amount: z.number().positive(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  accountId: EntityIdSchema.optional(),
+  settledDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  status: LoanStatusSchema.default("active"),
+  notes: z.string().max(256).optional(),
+  createdAt: z.string().datetime(),
+});
+export type LoanRecord = z.infer<typeof LoanRecordSchema>;
+
+export const CreateLoanRecordSchema = LoanRecordSchema.omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  id: EntityIdSchema.optional(),
+  status: LoanStatusSchema.default("active"),
+});
+export type CreateLoanRecordDto = z.infer<typeof CreateLoanRecordSchema>;
+
 export const TransactionTypeSchema = z.enum(["spend", "income"]);
 export type TransactionType = z.infer<typeof TransactionTypeSchema>;
 
@@ -92,6 +176,7 @@ export const SpendTransactionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   amount: z.number().positive(),
   type: TransactionTypeSchema.default("spend"),
+  accountId: EntityIdSchema.optional(),
   notes: z.string().max(256).optional(),
   createdAt: z.string().datetime(),
 });
@@ -116,5 +201,7 @@ export const DailyAllocationSchema = z.object({
   spentAmount: z.number().nonnegative(),
   incomeAmount: z.number().nonnegative().default(0),
   projectedQuota: z.number().nonnegative(),
+  hasCommitment: z.boolean().default(false),
+  commitmentAmount: z.number().nonnegative().default(0),
 });
 export type DailyAllocation = z.infer<typeof DailyAllocationSchema>;

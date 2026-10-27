@@ -87,6 +87,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 onPress={() => onSelectDay(day)}
                 style={[styles.cell, { backgroundColor: bg, borderColor: border }]}
               >
+                {day.hasCommitment && (
+                  <View
+                    style={[styles.cornerIndicator, day.isToday && styles.cornerIndicatorOnPrimary]}
+                  />
+                )}
                 <Text style={[styles.dayNumber, { color: dateColor }]}>{day.dayNumber}</Text>
                 <Text
                   numberOfLines={1}
@@ -147,6 +152,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 5,
     justifyContent: "space-between",
+    overflow: "hidden",
+    position: "relative",
   },
   dayNumber: {
     fontSize: 10,
@@ -156,5 +163,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     textAlign: "right",
+  },
+  cornerIndicator: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderTopRightRadius: TOKENS.radii.md - 1,
+    borderBottomLeftRadius: 5,
+    backgroundColor: TOKENS.colors.primary,
+  },
+  cornerIndicatorOnPrimary: {
+    backgroundColor: TOKENS.colors.textOnPrimary,
   },
 });

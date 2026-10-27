@@ -60,6 +60,9 @@ Before planning or writing any code, consult this inventory:
 - `DistributionRecordSchema`, `CreateDistributionRecordSchema`, `type DistributionRecord`, `type CreateDistributionRecordDto`
 - `MoneyCycleSchema`, `CreateMoneyCycleSchema`, `type MoneyCycle`, `type CreateMoneyCycleDto`
 - `UpdateCycleSettingsSchema`, `type UpdateCycleSettingsDto`
+- `AccountTypeSchema`, `AccountSchema`, `CreateAccountSchema`, `UpdateAccountSchema`, `type Account`, `type CreateAccountDto`
+- `PlannedPaymentStatusSchema`, `PlannedPaymentSchema`, `CreatePlannedPaymentSchema`, `type PlannedPayment`, `type CreatePlannedPaymentDto`
+- `LoanTypeSchema`, `LoanStatusSchema`, `LoanRecordSchema`, `CreateLoanRecordSchema`, `type LoanRecord`, `type CreateLoanRecordDto`
 - `TransactionTypeSchema`, `type TransactionType` (`spend`, `income`)
 - `SpendTransactionSchema`, `CreateSpendTransactionSchema`, `type SpendTransaction`, `type CreateSpendTransactionDto`
 - `DailyAllocationSchema`, `type DailyAllocation`

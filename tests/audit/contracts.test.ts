@@ -1,12 +1,22 @@
 import {
+  AccountSchema,
+  AccountTypeSchema,
+  CreateAccountSchema,
   CreateDistributionRecordSchema,
+  CreateLoanRecordSchema,
   CreateMoneyCycleSchema,
+  CreatePlannedPaymentSchema,
   CreateRationItemSchema,
   CreateSpendTransactionSchema,
   DailyAllocationSchema,
   DistributionRecordSchema,
+  LoanRecordSchema,
+  LoanStatusSchema,
+  LoanTypeSchema,
   LocaleSchema,
   MoneyCycleSchema,
+  PlannedPaymentSchema,
+  PlannedPaymentStatusSchema,
   RationItemSchema,
   SpendTransactionSchema,
   UpdateCycleSettingsSchema,
@@ -206,5 +216,84 @@ describe("Domain Audit: Contract & Schema Parity", () => {
       projectedQuota: 35.5,
     };
     expect(DailyAllocationSchema.safeParse(validDay).success).toBe(true);
+  });
+  it("validates account schema and type restrictions", () => {
+    const validAccount = {
+      id: "a0000000-0000-0000-0000-000000000001",
+      name: "Main Checking",
+      type: "bank",
+      balance: 5000000,
+      currency: "Rp ",
+      includeInCalendar: true,
+      isPrimary: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    expect(AccountSchema.safeParse(validAccount).success).toBe(true);
+
+    const validCreate = {
+      name: "Cash Wallet",
+      type: "cash",
+      balance: 200000,
+      currency: "Rp ",
+      includeInCalendar: true,
+      isPrimary: false,
+    };
+    expect(CreateAccountSchema.safeParse(validCreate).success).toBe(true);
+    expect(AccountTypeSchema.safeParse("crypto").success).toBe(false);
+  });
+
+  it("validates planned payment schema", () => {
+    const validPayment = {
+      id: "b0000000-0000-0000-0000-000000000001",
+      name: "Apartment Rent",
+      amount: 3000000,
+      dueDate: "2025-11-01",
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    expect(PlannedPaymentSchema.safeParse(validPayment).success).toBe(true);
+
+    const validCreate = {
+      name: "Gym Subscription",
+      amount: 250000,
+      dueDate: "2025-11-05",
+    };
+    expect(CreatePlannedPaymentSchema.safeParse(validCreate).success).toBe(true);
+    expect(PlannedPaymentStatusSchema.safeParse("unknown").success).toBe(false);
+  });
+
+  it("validates loan record schema for borrow and lend", () => {
+    const validBorrow = {
+      id: "c0000000-0000-0000-0000-000000000001",
+      counterparty: "Budi",
+      type: "borrow",
+      amount: 1000000,
+      dueDate: "2025-11-10",
+      status: "active",
+      createdAt: new Date().toISOString(),
+    };
+    expect(LoanRecordSchema.safeParse(validBorrow).success).toBe(true);
+
+    const validLend = {
+      id: "c0000000-0000-0000-0000-000000000002",
+      counterparty: "Sarah",
+      type: "lend",
+      amount: 500000,
+      dueDate: "2025-11-05",
+      status: "active",
+      createdAt: new Date().toISOString(),
+    };
+    expect(LoanRecordSchema.safeParse(validLend).success).toBe(true);
+
+    const validCreate = {
+      counterparty: "Sarah",
+      type: "lend",
+      amount: 500000,
+      dueDate: "2025-11-05",
+    };
+    expect(CreateLoanRecordSchema.safeParse(validCreate).success).toBe(true);
+    expect(LoanTypeSchema.safeParse("invest").success).toBe(false);
+    expect(LoanStatusSchema.safeParse("closed").success).toBe(false);
   });
 });
