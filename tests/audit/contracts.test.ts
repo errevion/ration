@@ -144,17 +144,21 @@ describe("Domain Audit: Contract & Schema Parity", () => {
 
     const validUpdateSettings = {
       currency: "Rp ",
-      startDate: "2025-10-25",
-      endDate: "2025-11-24",
-      referenceDate: "2025-10-28",
+      startDay: 25,
     };
     expect(UpdateCycleSettingsSchema.safeParse(validUpdateSettings).success).toBe(true);
 
-    const invalidSettingsDate = {
+    const invalidStartDay = {
       ...validUpdateSettings,
-      startDate: "invalid-date",
+      startDay: 32,
     };
-    expect(UpdateCycleSettingsSchema.safeParse(invalidSettingsDate).success).toBe(false);
+    expect(UpdateCycleSettingsSchema.safeParse(invalidStartDay).success).toBe(false);
+
+    const negativeStartDay = {
+      ...validUpdateSettings,
+      startDay: 0,
+    };
+    expect(UpdateCycleSettingsSchema.safeParse(negativeStartDay).success).toBe(false);
 
     const emptyCurrency = {
       ...validUpdateSettings,

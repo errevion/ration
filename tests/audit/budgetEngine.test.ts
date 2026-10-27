@@ -8,6 +8,7 @@ import type {
 import { describe, expect, it } from "vitest";
 import {
   computeCycleBudget,
+  computeCycleRange,
   getMondayFirstDayOfWeek,
   parseIsoDate,
 } from "../../apps/web/src/utils/budgetEngine.js";
@@ -187,5 +188,31 @@ describe("Domain Audit: Budget Engine Calculation", () => {
     expect(result.foreseeableBalance).toBe(310);
     const payday = result.cycleDays.find((d) => d.date === "2025-10-25");
     expect(payday?.hasCommitment).toBe(true);
+  });
+
+  it("computes standard calendar month cycle range when startDay is 1", () => {
+    const fromDate = new Date(2026, 9, 15);
+    const range = computeCycleRange(1, fromDate);
+    expect(range.startDate).toBe("2026-10-01");
+    expect(range.endDate).toBe("2026-10-31");
+  });
+
+  it("computes payday cycle range when startDay is 25 before and after anchor day", () => {
+    const beforePayday = new Date(2026, 9, 10);
+    const rangeBefore = computeCycleRange(25, beforePayday);
+    expect(rangeBefore.startDate).toBe("2026-09-25");
+    expect(rangeBefore.endDate).toBe("2026-10-24");
+
+    const onPayday = new Date(2026, 9, 25);
+    const rangeOn = computeCycleRange(25, onPayday);
+    expect(rangeOn.startDate).toBe("2026-10-25");
+    expect(rangeOn.endDate).toBe("2026-11-24");
+  });
+
+  it("clamps start and end days for shorter months correctly", () => {
+    const febDate = new Date(2026, 1, 15);
+    const range = computeCycleRange(31, febDate);
+    expect(range.startDate).toBe("2026-01-31");
+    expect(range.endDate).toBe("2026-02-28");
   });
 });

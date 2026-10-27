@@ -47,6 +47,54 @@ export function getMondayFirstDayOfWeek(date: Date): number {
   return (standardDay + 6) % 7;
 }
 
+export function computeCycleRange(
+  startDay = 1,
+  fromDate: Date = new Date()
+): { startDate: string; endDate: string } {
+  const clampedStartDay = Math.max(1, Math.min(31, Math.floor(startDay)));
+  const year = fromDate.getFullYear();
+  const month = fromDate.getMonth();
+  const day = fromDate.getDate();
+
+  if (clampedStartDay === 1) {
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    return {
+      startDate: `${year}-${String(month + 1).padStart(2, "0")}-01`,
+      endDate: `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`,
+    };
+  }
+
+  let startYear = year;
+  let startMonth = month;
+  if (day < clampedStartDay) {
+    startMonth = month - 1;
+    if (startMonth < 0) {
+      startMonth = 11;
+      startYear = year - 1;
+    }
+  }
+
+  let endYear = startYear;
+  let endMonth = startMonth + 1;
+  if (endMonth > 11) {
+    endMonth = 0;
+    endYear = startYear + 1;
+  }
+
+  const maxDaysStart = new Date(startYear, startMonth + 1, 0).getDate();
+  const actualStartDay = Math.min(clampedStartDay, maxDaysStart);
+
+  const maxDaysEnd = new Date(endYear, endMonth + 1, 0).getDate();
+  let targetEndDay = clampedStartDay - 1;
+  if (targetEndDay < 1) targetEndDay = 1;
+  const actualEndDay = Math.min(targetEndDay, maxDaysEnd);
+
+  const startDate = `${startYear}-${String(startMonth + 1).padStart(2, "0")}-${String(actualStartDay).padStart(2, "0")}`;
+  const endDate = `${endYear}-${String(endMonth + 1).padStart(2, "0")}-${String(actualEndDay).padStart(2, "0")}`;
+
+  return { startDate, endDate };
+}
+
 export function computeCycleBudget(
   cycle: MoneyCycle,
   transactions: SpendTransaction[],

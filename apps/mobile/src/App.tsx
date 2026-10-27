@@ -24,7 +24,7 @@ import { QuickBar } from "./components/QuickBar";
 import { SettingsModal } from "./components/SettingsModal";
 import { I18nProvider } from "./i18n";
 import { TOKENS } from "./theme/tokens";
-import { computeCycleBudget, formatIsoDate } from "./utils/budgetEngine";
+import { computeCycleBudget, computeCycleRange, formatIsoDate } from "./utils/budgetEngine";
 import {
   exportBackupFile,
   importBackupFile,
@@ -44,36 +44,15 @@ function generateUuid(): string {
 }
 
 function getInitialCycle(): MoneyCycle {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const currentDay = now.getDate();
-
-  let startYear = year;
-  let startMonth = month;
-  if (currentDay < 25) {
-    startMonth = month - 1;
-    if (startMonth < 0) {
-      startMonth = 11;
-      startYear = year - 1;
-    }
-  }
-
-  let endYear = startYear;
-  let endMonth = startMonth + 1;
-  if (endMonth > 11) {
-    endMonth = 0;
-    endYear = startYear + 1;
-  }
-
-  const startDate = `${startYear}-${String(startMonth + 1).padStart(2, "0")}-25`;
-  const endDate = `${endYear}-${String(endMonth + 1).padStart(2, "0")}-24`;
+  const startDay = 1;
+  const range = computeCycleRange(startDay);
 
   return {
     id: "c0000000-0000-0000-0000-000000000001",
-    name: "Monthly Pay Period",
-    startDate,
-    endDate,
+    name: "Monthly Cycle",
+    startDate: range.startDate,
+    endDate: range.endDate,
+    startDay,
     startingBalance: 0,
     currency: "Rp ",
     createdAt: new Date().toISOString(),
@@ -107,7 +86,7 @@ function MainScreen() {
   const [plannedPayments, setPlannedPayments] = useState<PlannedPayment[]>([]);
   const [loans, setLoans] = useState<LoanRecord[]>([]);
 
-  const [referenceDate, setReferenceDate] = useState<string>(() => formatIsoDate(new Date()));
+  const [referenceDate] = useState<string>(() => formatIsoDate(new Date()));
   const [isHydrated, setIsHydrated] = useState(false);
 
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
@@ -122,12 +101,18 @@ function MainScreen() {
   useEffect(() => {
     loadPersistedState().then((saved) => {
       if (saved) {
-        setCycle(saved.cycle);
+        const startDay = saved.cycle.startDay ?? 1;
+        const currentRange = computeCycleRange(startDay);
+        setCycle({
+          ...saved.cycle,
+          startDay,
+          startDate: currentRange.startDate,
+          endDate: currentRange.endDate,
+        });
         setAccounts(saved.accounts);
         setTransactions(saved.transactions);
         setPlannedPayments(saved.plannedPayments);
         setLoans(saved.loans);
-        if (saved.referenceDate) setReferenceDate(saved.referenceDate);
       }
       setIsHydrated(true);
     });
@@ -378,22 +363,16 @@ function MainScreen() {
     }
   }
 
-  function handleUpdateCycleSettings(settings: {
-    currency: string;
-    startDate: string;
-    endDate: string;
-    referenceDate?: string;
-  }) {
+  function handleUpdateCycleSettings(settings: { currency: string; startDay: number }) {
+    const range = computeCycleRange(settings.startDay);
     setCycle((prev) => ({
       ...prev,
       currency: settings.currency,
-      startDate: settings.startDate,
-      endDate: settings.endDate,
+      startDay: settings.startDay,
+      startDate: range.startDate,
+      endDate: range.endDate,
       updatedAt: new Date().toISOString(),
     }));
-    if (settings.referenceDate) {
-      setReferenceDate(settings.referenceDate);
-    }
   }
 
   async function handleExportBackup() {
@@ -412,12 +391,18 @@ function MainScreen() {
   async function handleImportBackup() {
     const data = await importBackupFile();
     if (data) {
-      setCycle(data.cycle);
+      const startDay = data.cycle.startDay ?? 1;
+      const range = computeCycleRange(startDay);
+      setCycle({
+        ...data.cycle,
+        startDay,
+        startDate: range.startDate,
+        endDate: range.endDate,
+      });
       setAccounts(data.accounts);
       setTransactions(data.transactions);
       setPlannedPayments(data.plannedPayments);
       setLoans(data.loans);
-      if (data.referenceDate) setReferenceDate(data.referenceDate);
     }
   }
 
@@ -478,7 +463,6 @@ function MainScreen() {
         <SettingsModal
           isOpen={isSettingsOpen}
           cycle={cycle}
-          referenceDate={referenceDate}
           onClose={() => setIsSettingsOpen(false)}
           onSave={handleUpdateCycleSettings}
           onExportBackup={handleExportBackup}
