@@ -1,5 +1,5 @@
-import type { DailyAllocation, SpendTransaction } from "@ration/types";
-import { X } from "lucide-react";
+import type { DailyAllocation, LoanRecord, PlannedPayment, SpendTransaction } from "@ration/types";
+import { Check, X } from "lucide-react";
 import type React from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
@@ -9,19 +9,31 @@ interface DayDetailDrawerProps {
   day: DailyAllocation | null;
   currency: string;
   transactions: SpendTransaction[];
+  plannedPayments?: PlannedPayment[];
+  loans?: LoanRecord[];
   onClose: () => void;
+  onMarkPaymentPaid?: (paymentId: string) => void;
+  onMarkLoanSettled?: (loanId: string) => void;
 }
 
 export const DayDetailDrawer: React.FC<DayDetailDrawerProps> = ({
   day,
   currency,
   transactions,
+  plannedPayments = [],
+  loans = [],
   onClose,
+  onMarkPaymentPaid,
+  onMarkLoanSettled,
 }) => {
   const { t } = useI18n();
 
   const isOpen = Boolean(day);
   const dayTransactions = day ? transactions.filter((tx) => tx.date === day.date) : [];
+  const dayPayments = day
+    ? plannedPayments.filter((p) => p.dueDate === day.date && p.status === "pending")
+    : [];
+  const dayLoans = day ? loans.filter((l) => l.dueDate === day.date && l.status === "active") : [];
 
   const displayAmount = day ? (day.isPast ? day.spentAmount : day.projectedQuota) : 0;
   const statusLabel = day?.isPast
@@ -149,6 +161,119 @@ export const DayDetailDrawer: React.FC<DayDetailDrawerProps> = ({
           </div>
         </div>
 
+        {(dayPayments.length > 0 || dayLoans.length > 0) && (
+          <div
+            style={{
+              backgroundColor: TOKENS.colors.surfaceElevated,
+              borderRadius: TOKENS.radii.md,
+              border: `1px solid ${TOKENS.colors.borderSubtle}`,
+              padding: TOKENS.spacing.md,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                color: TOKENS.colors.primary,
+                marginBottom: "2px",
+              }}
+            >
+              {t("tracker.scheduledCommitments")}
+            </span>
+            {dayPayments.map((p) => (
+              <div
+                key={p.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "4px 0",
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <span
+                    style={{ fontSize: "13px", fontWeight: 700, color: TOKENS.colors.textPrimary }}
+                  >
+                    {p.name}
+                  </span>
+                  <span style={{ fontSize: "12px", color: TOKENS.colors.textMuted }}>
+                    {formatCurrency(p.amount, currency)}
+                  </span>
+                </div>
+                {onMarkPaymentPaid && (
+                  <button
+                    type="button"
+                    onClick={() => onMarkPaymentPaid(p.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      background: "transparent",
+                      border: "none",
+                      color: TOKENS.colors.primary,
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Check size={14} />
+                    <span>{t("commitments.markPaid")}</span>
+                  </button>
+                )}
+              </div>
+            ))}
+            {dayLoans.map((l) => (
+              <div
+                key={l.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "4px 0",
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <span
+                    style={{ fontSize: "13px", fontWeight: 700, color: TOKENS.colors.textPrimary }}
+                  >
+                    {l.counterparty}
+                  </span>
+                  <span style={{ fontSize: "12px", color: TOKENS.colors.textMuted }}>
+                    {l.type === "borrow"
+                      ? t("commitments.borrowLabel")
+                      : t("commitments.lendLabel")}
+                    : {formatCurrency(l.amount, currency)}
+                  </span>
+                </div>
+                {onMarkLoanSettled && (
+                  <button
+                    type="button"
+                    onClick={() => onMarkLoanSettled(l.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      background: "transparent",
+                      border: "none",
+                      color: TOKENS.colors.primary,
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Check size={14} />
+                    <span>{t("commitments.markSettled")}</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: TOKENS.spacing.xs }}>
           {dayTransactions.length === 0 ? (
             <div

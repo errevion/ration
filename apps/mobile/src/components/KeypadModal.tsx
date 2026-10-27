@@ -1,3 +1,4 @@
+import type { Account } from "@ration/types";
 import { Delete, X } from "lucide-react-native";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -9,14 +10,16 @@ interface KeypadModalProps {
   isOpen: boolean;
   currency: string;
   mode?: "spend" | "income";
+  accounts?: Account[];
   onClose: () => void;
-  onConfirm: (amount: number) => void;
+  onConfirm: (amount: number, accountId?: string) => void;
 }
 
 export const KeypadModal: React.FC<KeypadModalProps> = ({
   isOpen,
   currency,
   mode = "spend",
+  accounts,
   onClose,
   onConfirm,
 }) => {
@@ -24,10 +27,14 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
   const [val, setVal] = useState("0");
   const [visible, setVisible] = useState(isOpen);
   const anim = useRef(new Animated.Value(0)).current;
+  const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(() => {
+    return accounts?.find((a) => a.isPrimary)?.id || accounts?.[0]?.id;
+  });
 
   useEffect(() => {
     if (isOpen) {
       setVal("0");
+      setSelectedAccountId(accounts?.find((a) => a.isPrimary)?.id || accounts?.[0]?.id);
       setVisible(true);
       Animated.timing(anim, {
         toValue: 1,
@@ -43,7 +50,7 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
         setVisible(false);
       });
     }
-  }, [anim, isOpen, visible]);
+  }, [accounts, anim, isOpen, visible]);
 
   const handleDismiss = useCallback(() => {
     Animated.timing(anim, {
@@ -97,7 +104,7 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
     const parsed = Number.parseFloat(val);
     if (parsed > 0) {
       handleDismiss();
-      onConfirm(parsed);
+      onConfirm(parsed, selectedAccountId);
     }
   }
 
@@ -137,6 +144,25 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          {accounts && accounts.length > 1 && (
+            <View style={styles.accountSelector}>
+              {accounts.map((acc) => {
+                const isSel = (selectedAccountId || accounts[0]?.id) === acc.id;
+                return (
+                  <TouchableOpacity
+                    key={acc.id}
+                    activeOpacity={0.7}
+                    style={[styles.accChip, isSel && styles.accChipActive]}
+                    onPress={() => setSelectedAccountId(acc.id)}
+                  >
+                    <Text style={[styles.accChipText, isSel && styles.accChipTextActive]}>
+                      {acc.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
           <View style={styles.displayBox}>
             <Text style={styles.displayCurrency}>{currency}</Text>
             <Text style={styles.displayValue}>{val}</Text>
@@ -330,5 +356,30 @@ const styles = StyleSheet.create({
   },
   confirmTextDisabled: {
     color: TOKENS.colors.textMuted,
+  },
+  accountSelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  accChip: {
+    backgroundColor: TOKENS.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    borderRadius: TOKENS.radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  accChipActive: {
+    backgroundColor: TOKENS.colors.primary,
+    borderColor: TOKENS.colors.primary,
+  },
+  accChipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: TOKENS.colors.textSecondary,
+  },
+  accChipTextActive: {
+    color: TOKENS.colors.textOnPrimary,
   },
 });

@@ -134,8 +134,26 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 textAlign: "left",
                 boxSizing: "border-box",
                 transition: "transform 0.1s ease, border-color 0.1s ease",
+                position: "relative",
+                overflow: "hidden",
               }}
             >
+              {day.hasCommitment && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    width: "8px",
+                    height: "8px",
+                    borderTopRightRadius: TOKENS.radii.md,
+                    borderBottomLeftRadius: "5px",
+                    backgroundColor: day.isToday
+                      ? TOKENS.colors.textOnPrimary
+                      : TOKENS.colors.primary,
+                  }}
+                />
+              )}
               <span
                 style={{
                   fontSize: "11px",

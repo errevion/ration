@@ -1,3 +1,4 @@
+import type { Account } from "@ration/types";
 import { Delete, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
@@ -8,25 +9,31 @@ interface KeypadDrawerProps {
   isOpen: boolean;
   currency: string;
   mode?: "spend" | "income";
+  accounts?: Account[];
   onClose: () => void;
-  onConfirm: (amount: number) => void;
+  onConfirm: (amount: number, accountId?: string) => void;
 }
 
 export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
   isOpen,
   currency,
   mode = "spend",
+  accounts,
   onClose,
   onConfirm,
 }) => {
   const { t } = useI18n();
   const [val, setVal] = useState("0");
+  const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(() => {
+    return accounts?.find((a) => a.isPrimary)?.id || accounts?.[0]?.id;
+  });
 
   useEffect(() => {
     if (isOpen) {
       setVal("0");
+      setSelectedAccountId(accounts?.find((a) => a.isPrimary)?.id || accounts?.[0]?.id);
     }
-  }, [isOpen]);
+  }, [accounts, isOpen]);
 
   const handleDigit = useCallback((digit: string) => {
     setVal((prev) => {
@@ -68,7 +75,7 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
   function handleConfirm() {
     const parsed = Number.parseFloat(val);
     if (parsed > 0) {
-      onConfirm(parsed);
+      onConfirm(parsed, selectedAccountId);
     }
   }
 
@@ -81,7 +88,7 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
       } else if (e.key === "Enter") {
         const num = Number.parseFloat(val);
         if (num > 0) {
-          onConfirm(num);
+          onConfirm(num, selectedAccountId);
         }
       } else if (e.key >= "0" && e.key <= "9") {
         handleDigit(e.key);
@@ -94,7 +101,7 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, val, onClose, onConfirm, handleDelete, handleDigit, handleDot]);
+  }, [handleDelete, handleDigit, handleDot, isOpen, onClose, onConfirm, selectedAccountId, val]);
 
   const numericValue = Number.parseFloat(val);
   const isValid = !Number.isNaN(numericValue) && numericValue > 0;
@@ -176,6 +183,32 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
           </button>
         </div>
 
+        {accounts && accounts.length > 1 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {accounts.map((acc) => {
+              const isSel = (selectedAccountId || accounts[0]?.id) === acc.id;
+              return (
+                <button
+                  key={acc.id}
+                  type="button"
+                  onClick={() => setSelectedAccountId(acc.id)}
+                  style={{
+                    backgroundColor: isSel ? TOKENS.colors.primary : TOKENS.colors.surfaceElevated,
+                    color: isSel ? TOKENS.colors.textOnPrimary : TOKENS.colors.textSecondary,
+                    border: `1px solid ${isSel ? TOKENS.colors.primary : TOKENS.colors.borderSubtle}`,
+                    borderRadius: TOKENS.radii.pill,
+                    padding: "3px 10px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {acc.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div
           style={{
             backgroundColor: TOKENS.colors.surfaceElevated,

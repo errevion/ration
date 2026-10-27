@@ -1,15 +1,18 @@
 import type { MoneyCycle } from "@ration/types";
-import { Settings } from "lucide-react";
+import { CalendarClock, Settings, Wallet } from "lucide-react";
 import type React from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
 
 interface CycleHeaderProps {
   cycle: MoneyCycle;
-  remainingBalance: number;
+  foreseeableBalance: number;
+  actualBalance: number;
   remainingDaysCount: number;
   dailyAllowance: number;
   onOpenSettings: () => void;
+  onOpenAccounts: () => void;
+  onOpenCommitments: () => void;
 }
 
 function formatDisplayDate(isoDate: string): string {
@@ -35,10 +38,13 @@ function formatDisplayDate(isoDate: string): string {
 
 export const CycleHeader: React.FC<CycleHeaderProps> = ({
   cycle,
-  remainingBalance,
+  foreseeableBalance,
+  actualBalance,
   remainingDaysCount,
   dailyAllowance,
   onOpenSettings,
+  onOpenAccounts,
+  onOpenCommitments,
 }) => {
   const { t } = useI18n();
 
@@ -50,6 +56,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   const dailyText = `${cycle.currency}${roundedDaily}`;
   const daysText = t("tracker.daysLeft", { days: remainingDaysCount });
   const paceText = t("tracker.perDay", { amount: dailyText });
+  const actualText = `${t("tracker.actualBalance")}: ${cycle.currency}${actualBalance.toLocaleString()}`;
 
   return (
     <div
@@ -113,7 +120,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
             marginBottom: TOKENS.spacing.xs,
           }}
         >
-          {t("tracker.totalBalance")}
+          {t("tracker.safeToSpend")}
         </div>
 
         <div
@@ -127,24 +134,70 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
           }}
         >
           {cycle.currency}
-          {remainingBalance.toLocaleString()}
+          {foreseeableBalance.toLocaleString()}
         </div>
 
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: TOKENS.spacing.xs,
+            flexWrap: "wrap",
+            gap: "8px",
             marginTop: TOKENS.spacing.xs,
             fontSize: "13px",
             fontWeight: 600,
-            color: TOKENS.colors.primary,
           }}
         >
-          <span>{daysText}</span>
-          <span style={{ color: TOKENS.colors.textMuted }}>•</span>
-          <span>{paceText}</span>
+          <span style={{ color: TOKENS.colors.textSecondary }}>{actualText}</span>
+          <span style={{ color: TOKENS.colors.border }}>|</span>
+          <span style={{ color: TOKENS.colors.primary }}>{daysText}</span>
+          <span style={{ color: TOKENS.colors.border }}>|</span>
+          <span style={{ color: TOKENS.colors.primary }}>{paceText}</span>
         </div>
+      </div>
+
+      <div style={{ display: "flex", gap: TOKENS.spacing.sm }}>
+        <button
+          type="button"
+          onClick={onOpenAccounts}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            backgroundColor: TOKENS.colors.surfaceElevated,
+            border: `1px solid ${TOKENS.colors.borderSubtle}`,
+            borderRadius: TOKENS.radii.pill,
+            padding: `${TOKENS.spacing.xs} ${TOKENS.spacing.md}`,
+            color: TOKENS.colors.textPrimary,
+            fontSize: "12px",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          <Wallet size={15} />
+          <span>{t("tracker.accounts")}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenCommitments}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            backgroundColor: TOKENS.colors.surfaceElevated,
+            border: `1px solid ${TOKENS.colors.borderSubtle}`,
+            borderRadius: TOKENS.radii.pill,
+            padding: `${TOKENS.spacing.xs} ${TOKENS.spacing.md}`,
+            color: TOKENS.colors.textPrimary,
+            fontSize: "12px",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          <CalendarClock size={15} />
+          <span>{t("tracker.commitments")}</span>
+        </button>
       </div>
     </div>
   );
