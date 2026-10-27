@@ -101,8 +101,9 @@ Runs on all pull requests and pushes targeting `master` and `develop`:
 ### 3.2 Android APK Compilation (`.github/workflows/build-apk.yml`)
 
 Triggered automatically on version tags (`v*`) or manual workflow dispatch:
-- Executes clean Expo prebuild (`npx expo prebuild --platform android --clean`).
+- Executes clean Expo prebuild before Gradle initialization to prepare native build roots.
+- Caches Gradle dependencies and C++ compilation (`ccache`) across runs for Hermes and TurboModules.
+- Assembles release `.apk` binaries via Gradle with `--build-cache` targeting device architectures (`arm64-v8a`, `armeabi-v7a`).
 - Decodes base64-encoded release keystores from GitHub Actions secrets.
-- Assembles release `.apk` binaries via Gradle.
 - Verifies and signs binaries using Android SDK `apksigner`.
 - Automatically publishes release assets to GitHub Releases.

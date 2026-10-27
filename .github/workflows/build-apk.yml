@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=2"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,6 +54,13 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Expo prebuild
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --clean
+
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
@@ -61,13 +69,15 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          build-root-directory: apps/mobile/android
+          cache-read-only: false
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run Expo prebuild
-        working-directory: apps/mobile
-        run: npx expo prebuild --platform android --clean
+      - name: Setup ccache
+        uses: hendrikmi/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-ccache-${{ hashFiles('apps/mobile/package.json') }}
+          max-size: 1G
 
       - name: Decode signing keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
@@ -76,7 +86,9 @@ jobs:
 
       - name: Assemble release APK
         working-directory: apps/mobile/android
-        run: ./gradlew assembleRelease --no-daemon
+        env:
+          USE_CCACHE: 1
+        run: ./gradlew assembleRelease --build-cache -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
 
       - name: Locate and sign assembled APK
         id: find-apk
@@ -85,7 +97,10 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          APK_PATH=$(find apps/mobile/android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          APK_PATH=$(find apps/mobile/android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            APK_PATH=$(find apps/mobile/android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          fi
           if [ -z "$APK_PATH" ]; then
             echo "Error: No APK found after build step."
             exit 1
@@ -102,6 +117,8 @@ jobs:
               --key-pass pass:"$KEY_PASSWORD" \
               "$OUTPUT_NAME"
             $BUILD_TOOLS_DIR/apksigner verify "$OUTPUT_NAME"
+          else
+            echo "::warning::Keystore not found or password missing. APK was NOT signed with release key."
           fi
 
           echo "apk_file=$OUTPUT_NAME" >> $GITHUB_OUTPUT
