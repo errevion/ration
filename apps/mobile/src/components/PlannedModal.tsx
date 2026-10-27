@@ -17,7 +17,7 @@ import { TOKENS } from "../theme/tokens";
 import { formatIsoDate } from "../utils/budgetEngine";
 import { formatCurrency } from "../utils/formatters";
 
-interface CommitmentsModalProps {
+interface PlannedModalProps {
   isOpen: boolean;
   accounts: Account[];
   plannedPayments: PlannedPayment[];
@@ -28,6 +28,7 @@ interface CommitmentsModalProps {
     name: string;
     amount: number;
     dueDate: string;
+    type: "spend" | "income";
     accountId?: string;
   }) => void;
   onMarkPaymentPaid: (paymentId: string) => void;
@@ -42,7 +43,7 @@ interface CommitmentsModalProps {
   onMarkLoanSettled: (loanId: string) => void;
 }
 
-export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
+export const PlannedModal: React.FC<PlannedModalProps> = ({
   isOpen,
   accounts,
   plannedPayments,
@@ -62,6 +63,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
 
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [paymentName, setPaymentName] = useState("");
+  const [paymentType, setPaymentType] = useState<"spend" | "income">("spend");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDueDate, setPaymentDueDate] = useState(() => formatIsoDate(new Date()));
   const [paymentAccountId, setPaymentAccountId] = useState<string | undefined>(
@@ -117,10 +119,12 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
       name: paymentName.trim(),
       amount: amt,
       dueDate: paymentDueDate,
+      type: paymentType,
       accountId: paymentAccountId,
     });
     setPaymentName("");
     setPaymentAmount("");
+    setPaymentType("spend");
     setIsAddingPayment(false);
   }
 
@@ -162,7 +166,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
         />
         <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>{t("commitments.title")}</Text>
+            <Text style={styles.title}>{t("planned.title")}</Text>
             <TouchableOpacity
               onPress={handleDismiss}
               accessibilityLabel={t("tracker.close")}
@@ -184,7 +188,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                   activeTab === "planned" && styles.tabButtonTextActive,
                 ]}
               >
-                {t("commitments.tabPlanned")}
+                {t("planned.tabPlanned")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -195,7 +199,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
               <Text
                 style={[styles.tabButtonText, activeTab === "loans" && styles.tabButtonTextActive]}
               >
-                {t("commitments.tabLoans")}
+                {t("planned.tabLoans")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -204,7 +208,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
             {activeTab === "planned" ? (
               <View style={styles.tabContent}>
                 {plannedPayments.length === 0 ? (
-                  <Text style={styles.emptyText}>{t("commitments.emptyPlanned")}</Text>
+                  <Text style={styles.emptyText}>{t("planned.emptyPlanned")}</Text>
                 ) : (
                   plannedPayments.map((item) => (
                     <View key={item.id} style={styles.card}>
@@ -236,8 +240,8 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                             ]}
                           >
                             {item.status === "completed"
-                              ? t("commitments.paid")
-                              : t("commitments.activeDebt")}
+                              ? t("planned.paid")
+                              : t("planned.activeDebt")}
                           </Text>
                         </View>
 
@@ -248,7 +252,11 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                             onPress={() => onMarkPaymentPaid(item.id)}
                           >
                             <Check size={14} color={TOKENS.colors.primary} />
-                            <Text style={styles.actionButtonText}>{t("commitments.markPaid")}</Text>
+                            <Text style={styles.actionButtonText}>
+                              {item.type === "income"
+                                ? t("planned.markReceived")
+                                : t("planned.markPaid")}
+                            </Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -257,18 +265,55 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                 )}
                 {isAddingPayment ? (
                   <View style={styles.formContainer}>
-                    <Text style={styles.formHeading}>{t("commitments.newPayment")}</Text>
+                    <Text style={styles.formHeading}>{t("planned.newPlanned")}</Text>
+
+                    <View style={styles.loanTypeRow}>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={[
+                          styles.loanTypeButton,
+                          paymentType === "spend" && styles.loanTypeButtonActive,
+                        ]}
+                        onPress={() => setPaymentType("spend")}
+                      >
+                        <Text
+                          style={[
+                            styles.loanTypeButtonText,
+                            paymentType === "spend" && styles.loanTypeButtonTextActive,
+                          ]}
+                        >
+                          {t("planned.billLabel")}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={[
+                          styles.loanTypeButton,
+                          paymentType === "income" && styles.loanTypeButtonActive,
+                        ]}
+                        onPress={() => setPaymentType("income")}
+                      >
+                        <Text
+                          style={[
+                            styles.loanTypeButtonText,
+                            paymentType === "income" && styles.loanTypeButtonTextActive,
+                          ]}
+                        >
+                          {t("planned.incomeLabel")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                     <TextInput
                       value={paymentName}
                       onChangeText={setPaymentName}
-                      placeholder={t("commitments.namePlaceholder")}
+                      placeholder={t("planned.namePlaceholder")}
                       placeholderTextColor={TOKENS.colors.textMuted}
                       style={styles.input}
                     />
                     <TextInput
                       value={paymentAmount}
                       onChangeText={setPaymentAmount}
-                      placeholder={t("commitments.amount")}
+                      placeholder={t("planned.amount")}
                       placeholderTextColor={TOKENS.colors.textMuted}
                       keyboardType="numeric"
                       style={styles.input}
@@ -332,14 +377,14 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                     onPress={() => setIsAddingPayment(true)}
                   >
                     <Plus size={16} color={TOKENS.colors.textPrimary} />
-                    <Text style={styles.openAddText}>{t("commitments.newPayment")}</Text>
+                    <Text style={styles.openAddText}>{t("planned.newPayment")}</Text>
                   </TouchableOpacity>
                 )}
               </View>
             ) : (
               <View style={styles.tabContent}>
                 {loans.length === 0 ? (
-                  <Text style={styles.emptyText}>{t("commitments.emptyLoans")}</Text>
+                  <Text style={styles.emptyText}>{t("planned.emptyLoans")}</Text>
                 ) : (
                   loans.map((item) => {
                     const isBorrow = item.type === "borrow";
@@ -365,9 +410,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                                     isBorrow ? styles.textBorrow : styles.textLend,
                                   ]}
                                 >
-                                  {isBorrow
-                                    ? t("commitments.borrowLabel")
-                                    : t("commitments.lendLabel")}
+                                  {isBorrow ? t("planned.borrowLabel") : t("planned.lendLabel")}
                                 </Text>
                               </View>
                               <Text style={styles.cardTitle}>{item.counterparty}</Text>
@@ -382,10 +425,10 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                         <View style={styles.cardFooter}>
                           <Text style={styles.cardSubtitle}>
                             {item.status === "settled"
-                              ? t("commitments.settled")
+                              ? t("planned.settled")
                               : isBorrow
-                                ? t("commitments.activeDebt")
-                                : t("commitments.activeReceivable")}
+                                ? t("planned.activeDebt")
+                                : t("planned.activeReceivable")}
                           </Text>
 
                           {item.status === "active" && (
@@ -396,7 +439,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                             >
                               <Check size={14} color={TOKENS.colors.primary} />
                               <Text style={styles.actionButtonText}>
-                                {t("commitments.markSettled")}
+                                {t("planned.markSettled")}
                               </Text>
                             </TouchableOpacity>
                           )}
@@ -407,7 +450,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                 )}
                 {isAddingLoan ? (
                   <View style={styles.formContainer}>
-                    <Text style={styles.formHeading}>{t("commitments.newLoan")}</Text>
+                    <Text style={styles.formHeading}>{t("planned.newLoan")}</Text>
 
                     <View style={styles.loanTypeRow}>
                       <TouchableOpacity
@@ -424,7 +467,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                             loanType === "borrow" && styles.loanTypeButtonTextActive,
                           ]}
                         >
-                          {t("commitments.borrow")}
+                          {t("planned.borrow")}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -441,7 +484,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                             loanType === "lend" && styles.loanTypeButtonTextActive,
                           ]}
                         >
-                          {t("commitments.lend")}
+                          {t("planned.lend")}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -449,14 +492,14 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                     <TextInput
                       value={loanCounterparty}
                       onChangeText={setLoanCounterparty}
-                      placeholder={t("commitments.counterpartyPlaceholder")}
+                      placeholder={t("planned.counterpartyPlaceholder")}
                       placeholderTextColor={TOKENS.colors.textMuted}
                       style={styles.input}
                     />
                     <TextInput
                       value={loanAmount}
                       onChangeText={setLoanAmount}
-                      placeholder={t("commitments.amount")}
+                      placeholder={t("planned.amount")}
                       placeholderTextColor={TOKENS.colors.textMuted}
                       keyboardType="numeric"
                       style={styles.input}
@@ -472,7 +515,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                     <TextInput
                       value={loanNotes}
                       onChangeText={setLoanNotes}
-                      placeholder={t("commitments.notesPlaceholder")}
+                      placeholder={t("planned.notesPlaceholder")}
                       placeholderTextColor={TOKENS.colors.textMuted}
                       style={styles.input}
                     />
@@ -481,8 +524,8 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                       <View style={styles.fieldGroup}>
                         <Text style={styles.fieldLabel}>
                           {loanType === "borrow"
-                            ? t("commitments.depositAccount")
-                            : t("commitments.deductAccount")}
+                            ? t("planned.depositAccount")
+                            : t("planned.deductAccount")}
                         </Text>
                         <View style={styles.accountChipsRow}>
                           {accounts.map((acc) => {
@@ -532,7 +575,7 @@ export const CommitmentsModal: React.FC<CommitmentsModalProps> = ({
                     onPress={() => setIsAddingLoan(true)}
                   >
                     <Plus size={16} color={TOKENS.colors.textPrimary} />
-                    <Text style={styles.openAddText}>{t("commitments.newLoan")}</Text>
+                    <Text style={styles.openAddText}>{t("planned.newLoan")}</Text>
                   </TouchableOpacity>
                 )}
               </View>

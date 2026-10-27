@@ -61,7 +61,7 @@ ration/
 │   │   │   ├── components/        # Mobile UI components (CalendarGrid, CycleHeader, KeypadModal, etc.)
 │   │   │   ├── i18n/              # Mobile localization dictionary & hook
 │   │   │   ├── theme/tokens.ts    # Mobile Steamer Porcelain design tokens
-│   │   │   ├── utils/             # Budget calculation & formatting engines
+│   │   │   ├── utils/             # Budget calculation, storage & formatting engines
 │   │   │   └── App.tsx            # Mobile application entry point
 │   │   └── app.json               # Expo build & android metadata
 │   └── web/                       # Vite React web application

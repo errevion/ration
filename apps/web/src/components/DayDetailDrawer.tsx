@@ -183,7 +183,7 @@ export const DayDetailDrawer: React.FC<DayDetailDrawerProps> = ({
                 marginBottom: "2px",
               }}
             >
-              {t("tracker.scheduledCommitments")}
+              {t("tracker.scheduledPlanned")}
             </span>
             {dayPayments.map((p) => (
               <div
@@ -222,7 +222,7 @@ export const DayDetailDrawer: React.FC<DayDetailDrawerProps> = ({
                     }}
                   >
                     <Check size={14} />
-                    <span>{t("commitments.markPaid")}</span>
+                    <span>{t("planned.markPaid")}</span>
                   </button>
                 )}
               </div>
@@ -244,10 +244,8 @@ export const DayDetailDrawer: React.FC<DayDetailDrawerProps> = ({
                     {l.counterparty}
                   </span>
                   <span style={{ fontSize: "12px", color: TOKENS.colors.textMuted }}>
-                    {l.type === "borrow"
-                      ? t("commitments.borrowLabel")
-                      : t("commitments.lendLabel")}
-                    : {formatCurrency(l.amount, currency)}
+                    {l.type === "borrow" ? t("planned.borrowLabel") : t("planned.lendLabel")}:{" "}
+                    {formatCurrency(l.amount, currency)}
                   </span>
                 </div>
                 {onMarkLoanSettled && (
@@ -267,7 +265,7 @@ export const DayDetailDrawer: React.FC<DayDetailDrawerProps> = ({
                     }}
                   >
                     <Check size={14} />
-                    <span>{t("commitments.markSettled")}</span>
+                    <span>{t("planned.markSettled")}</span>
                   </button>
                 )}
               </div>

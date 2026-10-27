@@ -117,7 +117,7 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
 
           {(dayPayments.length > 0 || dayLoans.length > 0) && (
             <View style={styles.commitmentsSection}>
-              <Text style={styles.commitmentsTitle}>{t("tracker.scheduledCommitments")}</Text>
+              <Text style={styles.commitmentsTitle}>{t("tracker.scheduledPlanned")}</Text>
               {dayPayments.map((p) => (
                 <View key={p.id} style={styles.commitmentRow}>
                   <View style={styles.commTextGroup}>
@@ -131,7 +131,7 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
                       onPress={() => onMarkPaymentPaid(p.id)}
                     >
                       <Check size={14} color={TOKENS.colors.primary} />
-                      <Text style={styles.commBtnText}>{t("commitments.markPaid")}</Text>
+                      <Text style={styles.commBtnText}>{t("planned.markPaid")}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -141,10 +141,8 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
                   <View style={styles.commTextGroup}>
                     <Text style={styles.commName}>{l.counterparty}</Text>
                     <Text style={styles.commSub}>
-                      {l.type === "borrow"
-                        ? t("commitments.borrowLabel")
-                        : t("commitments.lendLabel")}
-                      : {formatCurrency(l.amount, currency)}
+                      {l.type === "borrow" ? t("planned.borrowLabel") : t("planned.lendLabel")}:{" "}
+                      {formatCurrency(l.amount, currency)}
                     </Text>
                   </View>
                   {onMarkLoanSettled && (
@@ -154,7 +152,7 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
                       onPress={() => onMarkLoanSettled(l.id)}
                     >
                       <Check size={14} color={TOKENS.colors.primary} />
-                      <Text style={styles.commBtnText}>{t("commitments.markSettled")}</Text>
+                      <Text style={styles.commBtnText}>{t("planned.markSettled")}</Text>
                     </TouchableOpacity>
                   )}
                 </View>

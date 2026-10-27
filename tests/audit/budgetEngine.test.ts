@@ -166,4 +166,26 @@ describe("Domain Audit: Budget Engine Calculation", () => {
     const normalDay = result.cycleDays.find((d) => d.date === "2025-10-02");
     expect(normalDay?.hasCommitment).toBe(false);
   });
+  it("does not quarantine planned income but flags visual milestone on calendar", () => {
+    const plannedPayments: PlannedPayment[] = [
+      {
+        id: "b0000000-0000-0000-0000-000000000002",
+        name: "Payday Salary",
+        amount: 5000000,
+        dueDate: "2025-10-25",
+        type: "income",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    const result = computeCycleBudget(mockCycle, [], "2025-10-01", {
+      plannedPayments,
+    });
+
+    expect(result.quarantinedAmount).toBe(0);
+    expect(result.foreseeableBalance).toBe(310);
+    const payday = result.cycleDays.find((d) => d.date === "2025-10-25");
+    expect(payday?.hasCommitment).toBe(true);
+  });
 });

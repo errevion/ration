@@ -8,18 +8,24 @@ import type {
   PlannedPayment,
   SpendTransaction,
 } from "@ration/types";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AccountsDrawer } from "./components/AccountsDrawer.js";
 import { CalendarGrid } from "./components/CalendarGrid.js";
-import { CommitmentsDrawer } from "./components/CommitmentsDrawer.js";
 import { CycleHeader } from "./components/CycleHeader.js";
 import { DayDetailDrawer } from "./components/DayDetailDrawer.js";
 import { KeypadDrawer } from "./components/KeypadDrawer.js";
+import { PlannedDrawer } from "./components/PlannedDrawer.js";
 import { QuickBar } from "./components/QuickBar.js";
 import { SettingsDrawer } from "./components/SettingsDrawer.js";
 import { I18nProvider } from "./i18n/index.js";
 import { TOKENS } from "./theme/tokens.js";
 import { computeCycleBudget, formatIsoDate } from "./utils/budgetEngine.js";
+import {
+  exportBackupFile,
+  importBackupFile,
+  loadPersistedState,
+  savePersistedState,
+} from "./utils/storage.js";
 
 function getInitialCycle(): MoneyCycle {
   const now = new Date();
@@ -86,13 +92,41 @@ function TrackerApp() {
   const [loans, setLoans] = useState<LoanRecord[]>([]);
 
   const [referenceDate, setReferenceDate] = useState<string>(() => formatIsoDate(new Date()));
+  const [isHydrated, setIsHydrated] = useState(false);
+
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccountsOpen, setIsAccountsOpen] = useState(false);
-  const [isCommitmentsOpen, setIsCommitmentsOpen] = useState(false);
+  const [isPlannedOpen, setIsPlannedOpen] = useState(false);
 
   const [keypadMode, setKeypadMode] = useState<"spend" | "income">("spend");
   const [selectedDay, setSelectedDay] = useState<DailyAllocation | null>(null);
+
+  useEffect(() => {
+    const saved = loadPersistedState();
+    if (saved) {
+      setCycle(saved.cycle);
+      setAccounts(saved.accounts);
+      setTransactions(saved.transactions);
+      setPlannedPayments(saved.plannedPayments);
+      setLoans(saved.loans);
+      if (saved.referenceDate) setReferenceDate(saved.referenceDate);
+    }
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    savePersistedState({
+      version: 1,
+      cycle,
+      accounts,
+      transactions,
+      plannedPayments,
+      loans,
+      referenceDate,
+    });
+  }, [isHydrated, cycle, accounts, transactions, plannedPayments, loans, referenceDate]);
 
   const computation = useMemo(() => {
     return computeCycleBudget(cycle, transactions, referenceDate, {
@@ -168,10 +202,24 @@ function TrackerApp() {
   function handleSetPrimaryAccount(accountId: string) {
     setAccounts((prev) => prev.map((a) => ({ ...a, isPrimary: a.id === accountId })));
   }
+
+  function handleDeleteAccount(accountId: string) {
+    if (accounts.length <= 1) return;
+    const accountToDelete = accounts.find((a) => a.id === accountId);
+    const remaining = accounts.filter((a) => a.id !== accountId);
+    if (accountToDelete?.isPrimary && remaining.length > 0) {
+      remaining[0].isPrimary = true;
+    }
+    setAccounts(remaining);
+    setTransactions((prev) =>
+      prev.map((t) => (t.accountId === accountId ? { ...t, accountId: undefined } : t))
+    );
+  }
   function handleAddPlannedPayment(paymentData: {
     name: string;
     amount: number;
     dueDate: string;
+    type: "spend" | "income";
     accountId?: string;
   }) {
     const newPayment: PlannedPayment = {
@@ -179,6 +227,7 @@ function TrackerApp() {
       name: paymentData.name,
       amount: paymentData.amount,
       dueDate: paymentData.dueDate,
+      type: paymentData.type,
       accountId: paymentData.accountId,
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -196,13 +245,17 @@ function TrackerApp() {
 
     const targetAccId =
       payment.accountId || accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id;
+    const isIncome = payment.type === "income";
+
     if (targetAccId) {
       setAccounts((prev) =>
-        prev.map((acc) =>
-          acc.id === targetAccId
-            ? { ...acc, balance: acc.balance - payment.amount, updatedAt: new Date().toISOString() }
-            : acc
-        )
+        prev.map((acc) => {
+          if (acc.id === targetAccId) {
+            const updated = isIncome ? acc.balance + payment.amount : acc.balance - payment.amount;
+            return { ...acc, balance: updated, updatedAt: new Date().toISOString() };
+          }
+          return acc;
+        })
       );
     }
 
@@ -211,7 +264,7 @@ function TrackerApp() {
       cycleId: cycle.id,
       date: referenceDate,
       amount: payment.amount,
-      type: "spend",
+      type: isIncome ? "income" : "spend",
       accountId: targetAccId,
       notes: payment.name,
       createdAt: new Date().toISOString(),
@@ -325,6 +378,31 @@ function TrackerApp() {
     }
   }
 
+  function handleExportBackup() {
+    exportBackupFile({
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      cycle,
+      accounts,
+      transactions,
+      plannedPayments,
+      loans,
+      referenceDate,
+    });
+  }
+
+  async function handleImportBackup(file: File) {
+    const data = await importBackupFile(file);
+    if (data) {
+      setCycle(data.cycle);
+      setAccounts(data.accounts);
+      setTransactions(data.transactions);
+      setPlannedPayments(data.plannedPayments);
+      setLoans(data.loans);
+      if (data.referenceDate) setReferenceDate(data.referenceDate);
+    }
+  }
+
   const todayQuota = Math.floor(computation.dailyAllowance);
   return (
     <div
@@ -374,7 +452,7 @@ function TrackerApp() {
             dailyAllowance={computation.dailyAllowance}
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenAccounts={() => setIsAccountsOpen(true)}
-            onOpenCommitments={() => setIsCommitmentsOpen(true)}
+            onOpenPlanned={() => setIsPlannedOpen(true)}
           />
 
           <CalendarGrid
@@ -414,6 +492,8 @@ function TrackerApp() {
           referenceDate={referenceDate}
           onClose={() => setIsSettingsOpen(false)}
           onSave={handleUpdateCycleSettings}
+          onExportBackup={handleExportBackup}
+          onImportBackup={handleImportBackup}
         />
 
         <DayDetailDrawer
@@ -435,15 +515,16 @@ function TrackerApp() {
           onAddAccount={handleAddAccount}
           onToggleInclude={handleToggleIncludeAccount}
           onSetPrimary={handleSetPrimaryAccount}
+          onDeleteAccount={handleDeleteAccount}
         />
 
-        <CommitmentsDrawer
-          isOpen={isCommitmentsOpen}
+        <PlannedDrawer
+          isOpen={isPlannedOpen}
           accounts={accounts}
           plannedPayments={plannedPayments}
           loans={loans}
           currency={cycle.currency}
-          onClose={() => setIsCommitmentsOpen(false)}
+          onClose={() => setIsPlannedOpen(false)}
           onAddPlannedPayment={handleAddPlannedPayment}
           onMarkPaymentPaid={handleMarkPaymentPaid}
           onAddLoan={handleAddLoan}

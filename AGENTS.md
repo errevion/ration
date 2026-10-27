@@ -66,6 +66,7 @@ Before planning or writing any code, consult this inventory:
 - `TransactionTypeSchema`, `type TransactionType` (`spend`, `income`)
 - `SpendTransactionSchema`, `CreateSpendTransactionSchema`, `type SpendTransaction`, `type CreateSpendTransactionDto`
 - `DailyAllocationSchema`, `type DailyAllocation`
+- `BackupDataSchema`, `type BackupData`
 
 ### Official Design System
 

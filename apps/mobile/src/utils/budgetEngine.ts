@@ -144,7 +144,13 @@ export function computeCycleBudget(
 
   if (options?.plannedPayments) {
     for (const p of options.plannedPayments) {
-      if (p.status === "pending" && p.dueDate >= referenceDate && p.dueDate <= cycle.endDate) {
+      const isBill = (p.type ?? "spend") === "spend";
+      if (
+        isBill &&
+        p.status === "pending" &&
+        p.dueDate >= referenceDate &&
+        p.dueDate <= cycle.endDate
+      ) {
         quarantinedAmount += p.amount;
       }
       if (p.status === "pending") {
