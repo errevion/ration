@@ -55,6 +55,7 @@ export const MoneyCycleSchema = z.object({
   name: z.string().min(1).max(128),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startDay: z.number().int().min(1).max(31).default(1),
   startingBalance: z.number().nonnegative(),
   currency: z.string().min(1).max(8).default("$"),
   createdAt: z.string().datetime(),
@@ -74,12 +75,7 @@ export type CreateMoneyCycleDto = z.infer<typeof CreateMoneyCycleSchema>;
 
 export const UpdateCycleSettingsSchema = z.object({
   currency: z.string().min(1).max(8),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  referenceDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+  startDay: z.number().int().min(1).max(31),
 });
 export type UpdateCycleSettingsDto = z.infer<typeof UpdateCycleSettingsSchema>;
 

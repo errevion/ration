@@ -59,8 +59,8 @@ function renderAppIcon(x, y, width, height) {
   const cy = height / 2;
   const scale = width / 1024;
 
-  const cardRadius = 180 * scale;
-  const cardHalf = 380 * scale;
+  const cardRadius = 220 * scale;
+  const cardHalf = 420 * scale;
 
   const dx = Math.abs(x - cx);
   const dy = Math.abs(y - cy);
@@ -86,52 +86,57 @@ function renderAppIcon(x, y, width, height) {
   }
 
   if (inCard) {
-    const barLeft = cx - 140 * scale;
-    const barRight = barLeft + 70 * scale;
-    const barTop = cy - 200 * scale;
-    const barBottom = cy + 200 * scale;
+    const stemLeft = cx - 210 * scale;
+    const stemRight = stemLeft + 90 * scale;
+    const glyphTop = cy - 250 * scale;
+    const glyphBottom = cy + 250 * scale;
+    const bowlBottom = cy + 25 * scale;
+    const bowlHeight = bowlBottom - glyphTop;
+    const stemThickness = 90 * scale;
 
-    const inStem = x >= barLeft && x <= barRight && y >= barTop && y <= barBottom;
+    const inStem = x >= stemLeft && x <= stemRight && y >= glyphTop && y <= glyphBottom;
 
-    const bowlLeft = barRight;
-    const bowlRight = cx + 140 * scale;
-    const bowlTop = barTop;
-    const bowlBottom = cy + 10 * scale;
-    const bowlRadius = (bowlBottom - bowlTop) / 2;
-    const bowlCenterY = bowlTop + bowlRadius;
+    const inTopBar =
+      x >= stemRight && x <= cx + 80 * scale && y >= glyphTop && y <= glyphTop + stemThickness;
 
-    let inBowl = false;
-    if (x >= bowlLeft && x <= bowlRight && y >= bowlTop && y <= bowlBottom) {
-      const bdx = x - bowlLeft;
-      const bdy = y - bowlCenterY;
-      const maxDx = bowlRight - bowlLeft;
-      if (bdx <= maxDx) {
-        const outerD = Math.sqrt(
-          (bdx * bdx) / (maxDx * maxDx) + (bdy * bdy) / (bowlRadius * bowlRadius)
-        );
-        const innerMaxDx = maxDx - 60 * scale;
-        const innerRadius = bowlRadius - 60 * scale;
-        const innerD =
-          innerMaxDx > 0 && innerRadius > 0
-            ? Math.sqrt(
-                (bdx * bdx) / (innerMaxDx * innerMaxDx) + (bdy * bdy) / (innerRadius * innerRadius)
-              )
-            : 0;
+    const inMidBar =
+      x >= stemRight && x <= cx + 80 * scale && y >= bowlBottom - stemThickness && y <= bowlBottom;
 
-        if (outerD <= 1 && innerD >= 1) {
-          inBowl = true;
-        }
+    const bowlRightEdge = cx + 210 * scale;
+    const bowlCenterY = glyphTop + bowlHeight / 2;
+    const bowlOuterRx = bowlRightEdge - (cx + 80 * scale);
+    const bowlOuterRy = bowlHeight / 2;
+    const bowlInnerRx = bowlOuterRx - stemThickness;
+    const bowlInnerRy = bowlOuterRy - stemThickness;
+
+    let inBowlCurve = false;
+    if (x >= cx + 80 * scale && x <= bowlRightEdge && y >= glyphTop && y <= bowlBottom) {
+      const ndx = x - (cx + 80 * scale);
+      const ndy = y - bowlCenterY;
+      const outerNorm =
+        (ndx * ndx) / (bowlOuterRx * bowlOuterRx) + (ndy * ndy) / (bowlOuterRy * bowlOuterRy);
+      const innerNorm =
+        (ndx * ndx) / (bowlInnerRx * bowlInnerRx) + (ndy * ndy) / (bowlInnerRy * bowlInnerRy);
+      if (outerNorm <= 1.0 && innerNorm >= 1.0) {
+        inBowlCurve = true;
       }
     }
 
-    const legLeft = cx;
-    const legTop = cy;
-    const legBottom = barBottom;
-    const legSlope = x - legLeft - (y - legTop) * 0.7;
-    const inLeg =
-      y >= legTop && y <= legBottom && legSlope >= -20 * scale && legSlope <= 50 * scale;
+    const slashTopY = bowlBottom + 20 * scale;
+    const slashBottomY = glyphBottom;
+    const slashStartX = cx - 35 * scale;
+    const slope = 0.72;
+    const slashWidth = 95 * scale;
 
-    if (inStem || inBowl || inLeg) {
+    let inSlash = false;
+    if (y >= slashTopY && y <= slashBottomY) {
+      const centerLineX = slashStartX + (y - slashTopY) * slope;
+      if (x >= centerLineX && x <= centerLineX + slashWidth) {
+        inSlash = true;
+      }
+    }
+
+    if (inStem || inTopBar || inMidBar || inBowlCurve || inSlash) {
       return primary;
     }
 
@@ -161,6 +166,11 @@ function generate() {
 
   const faviconBuffer = createPng(48, 48, renderAppIcon);
   fs.writeFileSync(path.join(assetsDir, "favicon.png"), faviconBuffer);
+
+  const previewPath = path.resolve("scripts/preview-ratio-r.png");
+  if (fs.existsSync(previewPath)) {
+    fs.unlinkSync(previewPath);
+  }
 
   console.log("Assets generated successfully in apps/mobile/assets/");
 }
