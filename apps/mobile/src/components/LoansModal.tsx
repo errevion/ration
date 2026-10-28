@@ -1,5 +1,5 @@
 import type { Account, LoanRecord, LoanType } from "@ration/types";
-import { ArrowDownLeft, ArrowUpRight, Check, Plus, X } from "lucide-react-native";
+import { ArrowDownLeft, ArrowUpRight, Check, Pencil, Plus, Trash2, X } from "lucide-react-native";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -30,6 +30,18 @@ interface LoansModalProps {
     accountId?: string;
     notes?: string;
   }) => void;
+  onEditLoan: (
+    id: string,
+    loan: {
+      counterparty: string;
+      type: LoanType;
+      amount: number;
+      dueDate: string;
+      accountId?: string;
+      notes?: string;
+    }
+  ) => void;
+  onDeleteLoan: (id: string) => void;
   onMarkLoanSettled: (loanId: string) => void;
 }
 
@@ -40,17 +52,21 @@ export const LoansModal: React.FC<LoansModalProps> = ({
   currency,
   onClose,
   onAddLoan,
+  onEditLoan,
+  onDeleteLoan,
   onMarkLoanSettled,
 }) => {
   const { t } = useI18n();
   const [visible, setVisible] = useState(isOpen);
   const anim = useRef(new Animated.Value(0)).current;
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [editingLoan, setEditingLoan] = useState<LoanRecord | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setVisible(true);
       setIsRecordModalOpen(false);
+      setEditingLoan(null);
       Animated.timing(anim, {
         toValue: 1,
         duration: 240,
@@ -77,6 +93,36 @@ export const LoansModal: React.FC<LoansModalProps> = ({
       onClose();
     });
   }, [anim, onClose]);
+
+  function handleOpenCreate() {
+    setEditingLoan(null);
+    setIsRecordModalOpen(true);
+  }
+
+  function handleOpenEdit(loan: LoanRecord) {
+    setEditingLoan(loan);
+    setIsRecordModalOpen(true);
+  }
+
+  function handleFormSubmit(
+    loanData: {
+      counterparty: string;
+      type: LoanType;
+      amount: number;
+      dueDate: string;
+      accountId?: string;
+      notes?: string;
+    },
+    loanIdToUpdate?: string
+  ) {
+    if (loanIdToUpdate) {
+      onEditLoan(loanIdToUpdate, loanData);
+    } else {
+      onAddLoan(loanData);
+    }
+    setIsRecordModalOpen(false);
+    setEditingLoan(null);
+  }
 
   if (!visible) return null;
 
@@ -106,7 +152,7 @@ export const LoansModal: React.FC<LoansModalProps> = ({
                 <TouchableOpacity
                   activeOpacity={0.7}
                   style={styles.addHeaderButton}
-                  onPress={() => setIsRecordModalOpen(true)}
+                  onPress={handleOpenCreate}
                 >
                   <Plus size={14} color={TOKENS.colors.textOnPrimary} />
                   <Text style={styles.addHeaderButtonText}>{t("planned.newLoan")}</Text>
@@ -164,13 +210,32 @@ export const LoansModal: React.FC<LoansModalProps> = ({
                         </View>
 
                         <View style={styles.cardFooter}>
-                          <Text style={styles.cardSubtitle}>
-                            {item.status === "settled"
-                              ? t("planned.settled")
-                              : isBorrow
-                                ? t("planned.activeDebt")
-                                : t("planned.activeReceivable")}
-                          </Text>
+                          <View style={styles.cardFooterLeft}>
+                            <Text style={styles.cardSubtitle}>
+                              {item.status === "settled"
+                                ? t("planned.settled")
+                                : isBorrow
+                                  ? t("planned.activeDebt")
+                                  : t("planned.activeReceivable")}
+                            </Text>
+
+                            <View style={styles.iconActionsRow}>
+                              <TouchableOpacity
+                                activeOpacity={0.7}
+                                style={styles.iconButton}
+                                onPress={() => handleOpenEdit(item)}
+                              >
+                                <Pencil size={13} color={TOKENS.colors.textSecondary} />
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                activeOpacity={0.7}
+                                style={styles.iconButton}
+                                onPress={() => onDeleteLoan(item.id)}
+                              >
+                                <Trash2 size={13} color={TOKENS.colors.danger} />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
 
                           {item.status === "active" && (
                             <TouchableOpacity
@@ -199,8 +264,12 @@ export const LoansModal: React.FC<LoansModalProps> = ({
         isOpen={isRecordModalOpen}
         accounts={accounts}
         currency={currency}
-        onClose={() => setIsRecordModalOpen(false)}
-        onSubmit={onAddLoan}
+        initialLoan={editingLoan}
+        onClose={() => {
+          setIsRecordModalOpen(false);
+          setEditingLoan(null);
+        }}
+        onSubmit={handleFormSubmit}
       />
     </>
   );
@@ -335,6 +404,21 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: TOKENS.colors.borderSubtle,
     paddingTop: TOKENS.spacing.xs,
+  },
+  cardFooterLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: TOKENS.spacing.sm,
+  },
+  iconActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  iconButton: {
+    padding: 5,
+    borderRadius: TOKENS.radii.sm,
+    backgroundColor: TOKENS.colors.surfaceSubtle,
   },
   actionButton: {
     flexDirection: "row",

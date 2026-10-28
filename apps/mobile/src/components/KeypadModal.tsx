@@ -5,12 +5,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useI18n } from "../i18n";
 import { TOKENS } from "../theme/tokens";
+import { formatCurrency } from "../utils/formatters";
 
 interface KeypadModalProps {
   isOpen: boolean;
   currency: string;
   mode?: "spend" | "income";
   accounts?: Account[];
+  foreseeableBalance?: number;
+  remainingDaysCount?: number;
   onClose: () => void;
   onConfirm: (amount: number, accountId?: string) => void;
 }
@@ -20,6 +23,8 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
   currency,
   mode = "spend",
   accounts,
+  foreseeableBalance,
+  remainingDaysCount,
   onClose,
   onConfirm,
 }) => {
@@ -112,6 +117,38 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
   const isValid = !Number.isNaN(numericValue) && numericValue > 0;
   const modalTitle = mode === "income" ? t("tracker.addTitle") : t("tracker.keypadTitle");
 
+  const enteredAmount = Number.parseFloat(val) || 0;
+  const days = remainingDaysCount && remainingDaysCount > 0 ? remainingDaysCount : 1;
+  const currentDaily = Math.floor((foreseeableBalance ?? 0) / days);
+
+  let predictedText: string | null = null;
+  if (
+    foreseeableBalance !== undefined &&
+    remainingDaysCount !== undefined &&
+    remainingDaysCount > 0
+  ) {
+    if (enteredAmount > 0) {
+      const nextForeseeable =
+        mode === "income"
+          ? foreseeableBalance + enteredAmount
+          : Math.max(0, foreseeableBalance - enteredAmount);
+      const nextDaily = Math.floor(nextForeseeable / days);
+      const diff = nextDaily - currentDaily;
+      const formattedFrom = formatCurrency(currentDaily, currency);
+      const formattedTo = formatCurrency(nextDaily, currency);
+      const formattedDiff = `${diff >= 0 ? "+" : ""}${formatCurrency(diff, currency)}`;
+      predictedText = t("tracker.dailySpendPrediction", {
+        from: formattedFrom,
+        to: formattedTo,
+        delta: formattedDiff,
+      });
+    } else {
+      predictedText = t("tracker.currentDailySafeSpend", {
+        amount: formatCurrency(currentDaily, currency),
+      });
+    }
+  }
+
   if (!visible) return null;
 
   const backdropOpacity = anim.interpolate({
@@ -167,6 +204,8 @@ export const KeypadModal: React.FC<KeypadModalProps> = ({
             <Text style={styles.displayCurrency}>{currency}</Text>
             <Text style={styles.displayValue}>{val}</Text>
           </View>
+
+          {predictedText && <Text style={styles.predictionText}>{predictedText}</Text>}
 
           <View style={styles.keypadGrid}>
             {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
@@ -290,6 +329,13 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: "800",
     color: TOKENS.colors.textPrimary,
+  },
+  predictionText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: TOKENS.colors.primary,
+    textAlign: "center",
+    marginTop: -4,
   },
   keypadGrid: {
     flexDirection: "row",

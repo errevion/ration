@@ -4,12 +4,15 @@ import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
+import { formatCurrency } from "../utils/formatters.js";
 
 interface KeypadDrawerProps {
   isOpen: boolean;
   currency: string;
   mode?: "spend" | "income";
   accounts?: Account[];
+  foreseeableBalance?: number;
+  remainingDaysCount?: number;
   onClose: () => void;
   onConfirm: (amount: number, accountId?: string) => void;
 }
@@ -19,6 +22,8 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
   currency,
   mode = "spend",
   accounts,
+  foreseeableBalance,
+  remainingDaysCount,
   onClose,
   onConfirm,
 }) => {
@@ -105,6 +110,38 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
 
   const numericValue = Number.parseFloat(val);
   const isValid = !Number.isNaN(numericValue) && numericValue > 0;
+
+  const enteredAmount = Number.parseFloat(val) || 0;
+  const days = remainingDaysCount && remainingDaysCount > 0 ? remainingDaysCount : 1;
+  const currentDaily = Math.floor((foreseeableBalance ?? 0) / days);
+
+  let predictedText: string | null = null;
+  if (
+    foreseeableBalance !== undefined &&
+    remainingDaysCount !== undefined &&
+    remainingDaysCount > 0
+  ) {
+    if (enteredAmount > 0) {
+      const nextForeseeable =
+        mode === "income"
+          ? foreseeableBalance + enteredAmount
+          : Math.max(0, foreseeableBalance - enteredAmount);
+      const nextDaily = Math.floor(nextForeseeable / days);
+      const diff = nextDaily - currentDaily;
+      const formattedFrom = formatCurrency(currentDaily, currency);
+      const formattedTo = formatCurrency(nextDaily, currency);
+      const formattedDiff = `${diff >= 0 ? "+" : ""}${formatCurrency(diff, currency)}`;
+      predictedText = t("tracker.dailySpendPrediction", {
+        from: formattedFrom,
+        to: formattedTo,
+        delta: formattedDiff,
+      });
+    } else {
+      predictedText = t("tracker.currentDailySafeSpend", {
+        amount: formatCurrency(currentDaily, currency),
+      });
+    }
+  }
 
   return (
     <div
@@ -241,6 +278,20 @@ export const KeypadDrawer: React.FC<KeypadDrawerProps> = ({
             {val}
           </span>
         </div>
+
+        {predictedText && (
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 600,
+              color: TOKENS.colors.primary,
+              textAlign: "center",
+              marginTop: "-4px",
+            }}
+          >
+            {predictedText}
+          </div>
+        )}
 
         <div
           style={{

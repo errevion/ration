@@ -1,5 +1,5 @@
 import type { Account, LoanRecord, LoanType } from "@ration/types";
-import { ArrowDownLeft, ArrowUpRight, Check, Plus, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { useI18n } from "../i18n/index.js";
@@ -21,6 +21,18 @@ interface LoansDrawerProps {
     accountId?: string;
     notes?: string;
   }) => void;
+  onEditLoan: (
+    id: string,
+    loan: {
+      counterparty: string;
+      type: LoanType;
+      amount: number;
+      dueDate: string;
+      accountId?: string;
+      notes?: string;
+    }
+  ) => void;
+  onDeleteLoan: (id: string) => void;
   onMarkLoanSettled: (loanId: string) => void;
 }
 
@@ -31,10 +43,43 @@ export const LoansDrawer: React.FC<LoansDrawerProps> = ({
   currency,
   onClose,
   onAddLoan,
+  onEditLoan,
+  onDeleteLoan,
   onMarkLoanSettled,
 }) => {
   const { t } = useI18n();
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [editingLoan, setEditingLoan] = useState<LoanRecord | null>(null);
+
+  function handleOpenCreate() {
+    setEditingLoan(null);
+    setIsRecordModalOpen(true);
+  }
+
+  function handleOpenEdit(loan: LoanRecord) {
+    setEditingLoan(loan);
+    setIsRecordModalOpen(true);
+  }
+
+  function handleFormSubmit(
+    loanData: {
+      counterparty: string;
+      type: LoanType;
+      amount: number;
+      dueDate: string;
+      accountId?: string;
+      notes?: string;
+    },
+    loanIdToUpdate?: string
+  ) {
+    if (loanIdToUpdate) {
+      onEditLoan(loanIdToUpdate, loanData);
+    } else {
+      onAddLoan(loanData);
+    }
+    setIsRecordModalOpen(false);
+    setEditingLoan(null);
+  }
 
   return (
     <>
@@ -99,7 +144,7 @@ export const LoansDrawer: React.FC<LoansDrawerProps> = ({
             <div style={{ display: "flex", alignItems: "center", gap: TOKENS.spacing.xs }}>
               <button
                 type="button"
-                onClick={() => setIsRecordModalOpen(true)}
+                onClick={handleOpenCreate}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -261,18 +306,57 @@ export const LoansDrawer: React.FC<LoansDrawerProps> = ({
                         paddingTop: TOKENS.spacing.xs,
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          color: TOKENS.colors.textSecondary,
-                        }}
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: TOKENS.spacing.sm }}
                       >
-                        {item.status === "settled"
-                          ? t("planned.settled")
-                          : isBorrow
-                            ? t("planned.activeDebt")
-                            : t("planned.activeReceivable")}
-                      </span>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: TOKENS.colors.textSecondary,
+                          }}
+                        >
+                          {item.status === "settled"
+                            ? t("planned.settled")
+                            : isBorrow
+                              ? t("planned.activeDebt")
+                              : t("planned.activeReceivable")}
+                        </span>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(item)}
+                            style={{
+                              padding: "4px",
+                              border: "none",
+                              borderRadius: TOKENS.radii.sm,
+                              backgroundColor: TOKENS.colors.surfaceSubtle,
+                              color: TOKENS.colors.textSecondary,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteLoan(item.id)}
+                            style={{
+                              padding: "4px",
+                              border: "none",
+                              borderRadius: TOKENS.radii.sm,
+                              backgroundColor: TOKENS.colors.surfaceSubtle,
+                              color: TOKENS.colors.danger,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
 
                       {item.status === "active" && (
                         <button
@@ -309,8 +393,12 @@ export const LoansDrawer: React.FC<LoansDrawerProps> = ({
         isOpen={isRecordModalOpen}
         accounts={accounts}
         currency={currency}
-        onClose={() => setIsRecordModalOpen(false)}
-        onSubmit={onAddLoan}
+        initialLoan={editingLoan}
+        onClose={() => {
+          setIsRecordModalOpen(false);
+          setEditingLoan(null);
+        }}
+        onSubmit={handleFormSubmit}
       />
     </>
   );

@@ -89,6 +89,9 @@ function MainScreen() {
   const [referenceDate] = useState<string>(() => formatIsoDate(new Date()));
   const [isHydrated, setIsHydrated] = useState(false);
 
+  const [cycleOffset, setCycleOffset] = useState(0);
+  const [showProjection, setShowProjection] = useState(false);
+
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAccountsOpen, setIsAccountsOpen] = useState(false);
@@ -131,13 +134,23 @@ function MainScreen() {
     });
   }, [isHydrated, cycle, accounts, transactions, plannedPayments, loans, referenceDate]);
 
+  const displayedCycle = useMemo(() => {
+    const startDay = cycle.startDay ?? 1;
+    const range = computeCycleRange(startDay, new Date(), cycleOffset);
+    return {
+      ...cycle,
+      startDate: range.startDate,
+      endDate: range.endDate,
+    };
+  }, [cycle, cycleOffset]);
+
   const computation = useMemo(() => {
-    return computeCycleBudget(cycle, transactions, referenceDate, {
+    return computeCycleBudget(displayedCycle, transactions, referenceDate, {
       accounts,
       plannedPayments,
       loans,
     });
-  }, [cycle, transactions, referenceDate, accounts, plannedPayments, loans]);
+  }, [displayedCycle, transactions, referenceDate, accounts, plannedPayments, loans]);
 
   function handleRecordTransaction(amount: number, accountId?: string) {
     const targetAccountId = accountId || accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id;
@@ -224,18 +237,64 @@ function MainScreen() {
     dueDate: string;
     type: "spend" | "income";
     accountId?: string;
+    isRecurring?: boolean;
   }) {
-    const newPayment: PlannedPayment = {
-      id: generateUuid(),
-      name: paymentData.name,
-      amount: paymentData.amount,
-      dueDate: paymentData.dueDate,
-      type: paymentData.type,
-      accountId: paymentData.accountId,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
-    setPlannedPayments((prev) => [...prev, newPayment]);
+    if (paymentData.isRecurring) {
+      const [startYear, startMonth, startDay] = paymentData.dueDate.split("-").map(Number);
+      const newItems: PlannedPayment[] = [];
+      for (let i = 0; i < 12; i++) {
+        const targetDate = new Date(startYear, startMonth - 1 + i, 1);
+        const yr = targetDate.getFullYear();
+        const mo = targetDate.getMonth() + 1;
+        const maxDays = new Date(yr, mo, 0).getDate();
+        const dy = Math.min(startDay, maxDays);
+        const occurrenceDueDate = `${yr}-${String(mo).padStart(2, "0")}-${String(dy).padStart(2, "0")}`;
+
+        newItems.push({
+          id: generateUuid(),
+          name: paymentData.name,
+          amount: paymentData.amount,
+          dueDate: occurrenceDueDate,
+          type: paymentData.type,
+          accountId: paymentData.accountId,
+          status: "pending",
+          isRecurring: true,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      setPlannedPayments((prev) => [...prev, ...newItems]);
+    } else {
+      const newPayment: PlannedPayment = {
+        id: generateUuid(),
+        name: paymentData.name,
+        amount: paymentData.amount,
+        dueDate: paymentData.dueDate,
+        type: paymentData.type,
+        accountId: paymentData.accountId,
+        status: "pending",
+        isRecurring: false,
+        createdAt: new Date().toISOString(),
+      };
+      setPlannedPayments((prev) => [...prev, newPayment]);
+    }
+  }
+
+  function handleEditPlannedPayment(
+    id: string,
+    data: {
+      name: string;
+      amount: number;
+      dueDate: string;
+      type: "spend" | "income";
+      accountId?: string;
+      isRecurring?: boolean;
+    }
+  ) {
+    setPlannedPayments((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
+  }
+
+  function handleDeletePlannedPayment(id: string) {
+    setPlannedPayments((prev) => prev.filter((p) => p.id !== id));
   }
 
   function handleMarkPaymentPaid(paymentId: string) {
@@ -324,6 +383,24 @@ function MainScreen() {
       createdAt: new Date().toISOString(),
     };
     setTransactions((prev) => [...prev, newTx]);
+  }
+
+  function handleEditLoan(
+    id: string,
+    data: {
+      counterparty: string;
+      type: LoanType;
+      amount: number;
+      dueDate: string;
+      accountId?: string;
+      notes?: string;
+    }
+  ) {
+    setLoans((prev) => prev.map((l) => (l.id === id ? { ...l, ...data } : l)));
+  }
+
+  function handleDeleteLoan(id: string) {
+    setLoans((prev) => prev.filter((l) => l.id !== id));
   }
 
   function handleMarkLoanSettled(loanId: string) {
@@ -418,11 +495,18 @@ function MainScreen() {
           showsVerticalScrollIndicator={false}
         >
           <CycleHeader
-            cycle={cycle}
+            cycle={displayedCycle}
             foreseeableBalance={computation.foreseeableBalance}
             actualBalance={computation.actualBalance}
             remainingDaysCount={computation.remainingDaysCount}
             dailyAllowance={computation.dailyAllowance}
+            projectedDailyAllowance={computation.projectedDailyAllowance}
+            showProjection={showProjection}
+            cycleOffset={cycleOffset}
+            onToggleProjection={() => setShowProjection((prev) => !prev)}
+            onPrevCycle={() => setCycleOffset((prev) => prev - 1)}
+            onNextCycle={() => setCycleOffset((prev) => prev + 1)}
+            onResetCycle={() => setCycleOffset(0)}
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenAccounts={() => setIsAccountsOpen(true)}
             onOpenPlanned={() => setIsPlannedOpen(true)}
@@ -456,6 +540,8 @@ function MainScreen() {
           currency={cycle.currency}
           mode={keypadMode}
           accounts={accounts}
+          foreseeableBalance={computation.foreseeableBalance}
+          remainingDaysCount={computation.remainingDaysCount}
           onClose={() => setIsKeypadOpen(false)}
           onConfirm={handleRecordTransaction}
         />
@@ -498,6 +584,8 @@ function MainScreen() {
           currency={cycle.currency}
           onClose={() => setIsPlannedOpen(false)}
           onAddPlannedPayment={handleAddPlannedPayment}
+          onEditPlannedPayment={handleEditPlannedPayment}
+          onDeletePlannedPayment={handleDeletePlannedPayment}
           onMarkPaymentPaid={handleMarkPaymentPaid}
         />
 
@@ -508,6 +596,8 @@ function MainScreen() {
           currency={cycle.currency}
           onClose={() => setIsLoansOpen(false)}
           onAddLoan={handleAddLoan}
+          onEditLoan={handleEditLoan}
+          onDeleteLoan={handleDeleteLoan}
           onMarkLoanSettled={handleMarkLoanSettled}
         />
       </View>

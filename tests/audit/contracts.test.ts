@@ -255,6 +255,7 @@ describe("Domain Audit: Contract & Schema Parity", () => {
       amount: 3000000,
       dueDate: "2025-11-01",
       status: "pending",
+      isRecurring: true,
       createdAt: new Date().toISOString(),
     };
     expect(PlannedPaymentSchema.safeParse(validPayment).success).toBe(true);
@@ -263,8 +264,10 @@ describe("Domain Audit: Contract & Schema Parity", () => {
       name: "Gym Subscription",
       amount: 250000,
       dueDate: "2025-11-05",
+      isRecurring: true,
     };
-    expect(CreatePlannedPaymentSchema.safeParse(validCreate).success).toBe(true);
+    const parsedCreate = CreatePlannedPaymentSchema.parse(validCreate);
+    expect(parsedCreate.isRecurring).toBe(true);
     expect(PlannedPaymentStatusSchema.safeParse("unknown").success).toBe(false);
   });
 

@@ -51,97 +51,32 @@ function createPng(width, height, pixelFn) {
 
 function renderAppIcon(x, y, width, height) {
   const bg = [10, 10, 11, 255];
-  const surface = [20, 20, 22, 255];
-  const border = [38, 38, 42, 255];
   const primary = [255, 229, 0, 255];
 
   const cx = width / 2;
   const cy = height / 2;
   const scale = width / 1024;
 
-  const cardRadius = 220 * scale;
-  const cardHalf = 420 * scale;
+  const dotCenterX = cx + 180 * scale;
+  const dotCenterY = cy - 180 * scale;
+  const dotRadius = 72 * scale;
 
-  const dx = Math.abs(x - cx);
-  const dy = Math.abs(y - cy);
+  const dx = x - dotCenterX;
+  const dy = y - dotCenterY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
 
-  let inCard = false;
-  let onCardBorder = false;
-
-  if (dx <= cardHalf && dy <= cardHalf) {
-    const cornerX = dx - (cardHalf - cardRadius);
-    const cornerY = dy - (cardHalf - cardRadius);
-    if (cornerX > 0 && cornerY > 0) {
-      const dist = Math.sqrt(cornerX * cornerX + cornerY * cornerY);
-      if (dist <= cardRadius) {
-        inCard = true;
-        if (dist >= cardRadius - 4 * scale) onCardBorder = true;
-      }
-    } else {
-      inCard = true;
-      if (dx >= cardHalf - 4 * scale || dy >= cardHalf - 4 * scale) {
-        onCardBorder = true;
-      }
-    }
+  if (dist <= dotRadius - 1.5 * scale) {
+    return primary;
   }
-
-  if (inCard) {
-    const stemLeft = cx - 210 * scale;
-    const stemRight = stemLeft + 90 * scale;
-    const glyphTop = cy - 250 * scale;
-    const glyphBottom = cy + 250 * scale;
-    const bowlBottom = cy + 25 * scale;
-    const bowlHeight = bowlBottom - glyphTop;
-    const stemThickness = 90 * scale;
-
-    const inStem = x >= stemLeft && x <= stemRight && y >= glyphTop && y <= glyphBottom;
-
-    const inTopBar =
-      x >= stemRight && x <= cx + 80 * scale && y >= glyphTop && y <= glyphTop + stemThickness;
-
-    const inMidBar =
-      x >= stemRight && x <= cx + 80 * scale && y >= bowlBottom - stemThickness && y <= bowlBottom;
-
-    const bowlRightEdge = cx + 210 * scale;
-    const bowlCenterY = glyphTop + bowlHeight / 2;
-    const bowlOuterRx = bowlRightEdge - (cx + 80 * scale);
-    const bowlOuterRy = bowlHeight / 2;
-    const bowlInnerRx = bowlOuterRx - stemThickness;
-    const bowlInnerRy = bowlOuterRy - stemThickness;
-
-    let inBowlCurve = false;
-    if (x >= cx + 80 * scale && x <= bowlRightEdge && y >= glyphTop && y <= bowlBottom) {
-      const ndx = x - (cx + 80 * scale);
-      const ndy = y - bowlCenterY;
-      const outerNorm =
-        (ndx * ndx) / (bowlOuterRx * bowlOuterRx) + (ndy * ndy) / (bowlOuterRy * bowlOuterRy);
-      const innerNorm =
-        (ndx * ndx) / (bowlInnerRx * bowlInnerRx) + (ndy * ndy) / (bowlInnerRy * bowlInnerRy);
-      if (outerNorm <= 1.0 && innerNorm >= 1.0) {
-        inBowlCurve = true;
-      }
-    }
-
-    const slashTopY = bowlBottom + 20 * scale;
-    const slashBottomY = glyphBottom;
-    const slashStartX = cx - 35 * scale;
-    const slope = 0.72;
-    const slashWidth = 95 * scale;
-
-    let inSlash = false;
-    if (y >= slashTopY && y <= slashBottomY) {
-      const centerLineX = slashStartX + (y - slashTopY) * slope;
-      if (x >= centerLineX && x <= centerLineX + slashWidth) {
-        inSlash = true;
-      }
-    }
-
-    if (inStem || inTopBar || inMidBar || inBowlCurve || inSlash) {
-      return primary;
-    }
-
-    if (onCardBorder) return border;
-    return surface;
+  if (dist <= dotRadius + 1.5 * scale) {
+    const alpha = 0.5 - (dist - dotRadius) / (3 * scale);
+    const clampedAlpha = Math.max(0, Math.min(1, alpha));
+    return [
+      Math.round(bg[0] * (1 - clampedAlpha) + primary[0] * clampedAlpha),
+      Math.round(bg[1] * (1 - clampedAlpha) + primary[1] * clampedAlpha),
+      Math.round(bg[2] * (1 - clampedAlpha) + primary[2] * clampedAlpha),
+      255,
+    ];
   }
 
   return bg;
@@ -167,9 +102,15 @@ function generate() {
   const faviconBuffer = createPng(48, 48, renderAppIcon);
   fs.writeFileSync(path.join(assetsDir, "favicon.png"), faviconBuffer);
 
-  const previewPath = path.resolve("scripts/preview-ratio-r.png");
-  if (fs.existsSync(previewPath)) {
-    fs.unlinkSync(previewPath);
+  const previews = [
+    path.resolve("scripts/preview-dot-icon.png"),
+    path.resolve("scripts/preview-dot-icon-safe.png"),
+    path.resolve("scripts/preview-ratio-r.png"),
+  ];
+  for (const p of previews) {
+    if (fs.existsSync(p)) {
+      fs.unlinkSync(p);
+    }
   }
 
   console.log("Assets generated successfully in apps/mobile/assets/");

@@ -1,4 +1,4 @@
-import type { Account, LoanType } from "@ration/types";
+import type { Account, LoanRecord, LoanType } from "@ration/types";
 import { Calendar, X } from "lucide-react-native";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -23,21 +23,26 @@ interface RecordLoanModalProps {
   isOpen: boolean;
   accounts: Account[];
   currency: string;
+  initialLoan?: LoanRecord | null;
   onClose: () => void;
-  onSubmit: (loan: {
-    counterparty: string;
-    type: LoanType;
-    amount: number;
-    dueDate: string;
-    accountId?: string;
-    notes?: string;
-  }) => void;
+  onSubmit: (
+    loan: {
+      counterparty: string;
+      type: LoanType;
+      amount: number;
+      dueDate: string;
+      accountId?: string;
+      notes?: string;
+    },
+    loanIdToUpdate?: string
+  ) => void;
 }
 
 export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
   isOpen,
   accounts,
   currency,
+  initialLoan,
   onClose,
   onSubmit,
 }) => {
@@ -58,12 +63,23 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setVisible(true);
-      setCounterparty("");
-      setLoanType("borrow");
-      setAmount("");
-      setDueDate(formatIsoDate(new Date()));
-      setAccountId(accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id);
-      setNotes("");
+      if (initialLoan) {
+        setCounterparty(initialLoan.counterparty);
+        setLoanType(initialLoan.type);
+        setAmount(String(initialLoan.amount));
+        setDueDate(initialLoan.dueDate);
+        setAccountId(
+          initialLoan.accountId ?? accounts.find((a) => a.isPrimary)?.id ?? accounts[0]?.id
+        );
+        setNotes(initialLoan.notes ?? "");
+      } else {
+        setCounterparty("");
+        setLoanType("borrow");
+        setAmount("");
+        setDueDate(formatIsoDate(new Date()));
+        setAccountId(accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id);
+        setNotes("");
+      }
       setIsDatePickerOpen(false);
       Animated.timing(anim, {
         toValue: 1,
@@ -79,7 +95,7 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
         setVisible(false);
       });
     }
-  }, [accounts, anim, isOpen, visible]);
+  }, [accounts, anim, initialLoan, isOpen, visible]);
 
   const handleDismiss = useCallback(() => {
     Animated.timing(anim, {
@@ -97,14 +113,17 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
 
   function handleSubmit() {
     if (!isValid) return;
-    onSubmit({
-      counterparty: counterparty.trim(),
-      type: loanType,
-      amount: parsedAmount,
-      dueDate,
-      accountId,
-      notes: notes.trim() || undefined,
-    });
+    onSubmit(
+      {
+        counterparty: counterparty.trim(),
+        type: loanType,
+        amount: parsedAmount,
+        dueDate,
+        accountId,
+        notes: notes.trim() || undefined,
+      },
+      initialLoan?.id
+    );
     handleDismiss();
   }
 
@@ -135,7 +154,9 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
           >
             <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetTranslateY }] }]}>
               <View style={styles.header}>
-                <Text style={styles.title}>{t("planned.newLoan")}</Text>
+                <Text style={styles.title}>
+                  {initialLoan ? t("planned.editLoan") : t("planned.newLoan")}
+                </Text>
                 <TouchableOpacity
                   onPress={handleDismiss}
                   accessibilityLabel={t("tracker.close")}

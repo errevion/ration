@@ -186,27 +186,40 @@ describe("Domain Audit: Budget Engine Calculation", () => {
 
     expect(result.quarantinedAmount).toBe(0);
     expect(result.foreseeableBalance).toBe(310);
+    expect(result.projectedIncome).toBe(5000000);
+    expect(result.projectedDailyAllowance).toBeCloseTo((310 + 5000000) / 31, 2);
     const payday = result.cycleDays.find((d) => d.date === "2025-10-25");
     expect(payday?.hasCommitment).toBe(true);
   });
 
-  it("computes standard calendar month cycle range when startDay is 1", () => {
+  it("computes standard calendar month cycle range with cycleOffset", () => {
     const fromDate = new Date(2026, 9, 15);
-    const range = computeCycleRange(1, fromDate);
-    expect(range.startDate).toBe("2026-10-01");
-    expect(range.endDate).toBe("2026-10-31");
+    const rangeCurrent = computeCycleRange(1, fromDate, 0);
+    expect(rangeCurrent.startDate).toBe("2026-10-01");
+    expect(rangeCurrent.endDate).toBe("2026-10-31");
+
+    const rangeNext = computeCycleRange(1, fromDate, 1);
+    expect(rangeNext.startDate).toBe("2026-11-01");
+    expect(rangeNext.endDate).toBe("2026-11-30");
+
+    const rangePrev = computeCycleRange(1, fromDate, -1);
+    expect(rangePrev.startDate).toBe("2026-09-01");
+    expect(rangePrev.endDate).toBe("2026-09-30");
   });
 
-  it("computes payday cycle range when startDay is 25 before and after anchor day", () => {
+  it("computes payday cycle range when startDay is 25 with cycleOffset", () => {
     const beforePayday = new Date(2026, 9, 10);
-    const rangeBefore = computeCycleRange(25, beforePayday);
+    const rangeBefore = computeCycleRange(25, beforePayday, 0);
     expect(rangeBefore.startDate).toBe("2026-09-25");
     expect(rangeBefore.endDate).toBe("2026-10-24");
 
-    const onPayday = new Date(2026, 9, 25);
-    const rangeOn = computeCycleRange(25, onPayday);
-    expect(rangeOn.startDate).toBe("2026-10-25");
-    expect(rangeOn.endDate).toBe("2026-11-24");
+    const rangeNext = computeCycleRange(25, beforePayday, 1);
+    expect(rangeNext.startDate).toBe("2026-10-25");
+    expect(rangeNext.endDate).toBe("2026-11-24");
+
+    const rangePrev = computeCycleRange(25, beforePayday, -1);
+    expect(rangePrev.startDate).toBe("2026-08-25");
+    expect(rangePrev.endDate).toBe("2026-09-24");
   });
 
   it("clamps start and end days for shorter months correctly", () => {
