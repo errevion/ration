@@ -122,6 +122,7 @@ export const PlannedPaymentSchema = z.object({
   type: TransactionTypeSchema.default("spend"),
   accountId: EntityIdSchema.optional(),
   status: PlannedPaymentStatusSchema.default("pending"),
+  isRecurring: z.boolean().default(false),
   createdAt: z.string().datetime(),
 });
 export type PlannedPayment = z.infer<typeof PlannedPaymentSchema>;
@@ -133,8 +134,12 @@ export const CreatePlannedPaymentSchema = PlannedPaymentSchema.omit({
   id: EntityIdSchema.optional(),
   type: TransactionTypeSchema.default("spend"),
   status: PlannedPaymentStatusSchema.default("pending"),
+  isRecurring: z.boolean().default(false),
 });
 export type CreatePlannedPaymentDto = z.infer<typeof CreatePlannedPaymentSchema>;
+
+export const UpdatePlannedPaymentSchema = CreatePlannedPaymentSchema.partial();
+export type UpdatePlannedPaymentDto = z.infer<typeof UpdatePlannedPaymentSchema>;
 
 export const LoanTypeSchema = z.enum(["borrow", "lend"]);
 export type LoanType = z.infer<typeof LoanTypeSchema>;
@@ -167,6 +172,9 @@ export const CreateLoanRecordSchema = LoanRecordSchema.omit({
   status: LoanStatusSchema.default("active"),
 });
 export type CreateLoanRecordDto = z.infer<typeof CreateLoanRecordSchema>;
+
+export const UpdateLoanRecordSchema = CreateLoanRecordSchema.partial();
+export type UpdateLoanRecordDto = z.infer<typeof UpdateLoanRecordSchema>;
 
 export const SpendTransactionSchema = z.object({
   id: EntityIdSchema,

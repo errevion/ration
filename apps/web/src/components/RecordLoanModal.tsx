@@ -1,4 +1,4 @@
-import type { Account, LoanType } from "@ration/types";
+import type { Account, LoanRecord, LoanType } from "@ration/types";
 import { Calendar, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -11,21 +11,26 @@ interface RecordLoanModalProps {
   isOpen: boolean;
   accounts: Account[];
   currency: string;
+  initialLoan?: LoanRecord | null;
   onClose: () => void;
-  onSubmit: (loan: {
-    counterparty: string;
-    type: LoanType;
-    amount: number;
-    dueDate: string;
-    accountId?: string;
-    notes?: string;
-  }) => void;
+  onSubmit: (
+    loan: {
+      counterparty: string;
+      type: LoanType;
+      amount: number;
+      dueDate: string;
+      accountId?: string;
+      notes?: string;
+    },
+    loanIdToUpdate?: string
+  ) => void;
 }
 
 export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
   isOpen,
   accounts,
   currency,
+  initialLoan,
   onClose,
   onSubmit,
 }) => {
@@ -42,29 +47,43 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setCounterparty("");
-      setLoanType("borrow");
-      setAmount("");
-      setDueDate(formatIsoDate(new Date()));
-      setAccountId(accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id);
-      setNotes("");
+      if (initialLoan) {
+        setCounterparty(initialLoan.counterparty);
+        setLoanType(initialLoan.type);
+        setAmount(String(initialLoan.amount));
+        setDueDate(initialLoan.dueDate);
+        setAccountId(
+          initialLoan.accountId ?? accounts.find((a) => a.isPrimary)?.id ?? accounts[0]?.id
+        );
+        setNotes(initialLoan.notes ?? "");
+      } else {
+        setCounterparty("");
+        setLoanType("borrow");
+        setAmount("");
+        setDueDate(formatIsoDate(new Date()));
+        setAccountId(accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id);
+        setNotes("");
+      }
       setIsDatePickerOpen(false);
     }
-  }, [isOpen, accounts]);
+  }, [isOpen, accounts, initialLoan]);
 
   const parsedAmount = Number.parseFloat(amount);
   const isValid = counterparty.trim().length > 0 && !Number.isNaN(parsedAmount) && parsedAmount > 0;
 
   function handleSubmit() {
     if (!isValid) return;
-    onSubmit({
-      counterparty: counterparty.trim(),
-      type: loanType,
-      amount: parsedAmount,
-      dueDate,
-      accountId,
-      notes: notes.trim() || undefined,
-    });
+    onSubmit(
+      {
+        counterparty: counterparty.trim(),
+        type: loanType,
+        amount: parsedAmount,
+        dueDate,
+        accountId,
+        notes: notes.trim() || undefined,
+      },
+      initialLoan?.id
+    );
     onClose();
   }
 
@@ -126,7 +145,7 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
                 color: TOKENS.colors.textPrimary,
               }}
             >
-              {t("planned.newLoan")}
+              {initialLoan ? t("planned.editLoan") : t("planned.newLoan")}
             </span>
             <button
               type="button"

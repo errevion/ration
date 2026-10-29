@@ -58,7 +58,7 @@ ration/
 │   ├── mobile/                    # Expo React Native mobile client
 │   │   ├── assets/                # App icons, splash screens, and adaptive drawables
 │   │   ├── src/
-│   │   │   ├── components/        # Mobile UI components (CalendarGrid, CycleHeader, RecordLoanModal, etc.)
+│   │   │   ├── components/        # Mobile UI components (CalendarGrid, CycleHeader, RecordLoanModal, RecordPlannedPaymentModal, etc.)
 │   │   │   ├── i18n/              # Mobile localization dictionary & hook
 │   │   │   ├── theme/tokens.ts    # Mobile Steamer Porcelain design tokens
 │   │   │   ├── utils/             # Budget calculation, storage & formatting engines
@@ -66,7 +66,7 @@ ration/
 │   │   └── app.json               # Expo build & android metadata
 │   └── web/                       # Vite React web application
 │       ├── src/
-│       │   ├── components/        # Web UI components (CalendarGrid, CycleHeader, RecordLoanModal, etc.)
+│       │   ├── components/        # Web UI components (CalendarGrid, CycleHeader, RecordLoanModal, RecordPlannedPaymentModal, etc.)
 │       │   ├── i18n/              # Web localization dictionary & hook
 │       │   ├── theme/tokens.ts    # Web Steamer Porcelain design tokens
 │       │   ├── utils/             # Budget calculation & formatting engines

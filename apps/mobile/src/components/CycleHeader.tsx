@@ -1,5 +1,13 @@
 import type { MoneyCycle } from "@ration/types";
-import { CalendarClock, HandCoins, Settings, Wallet } from "lucide-react-native";
+import {
+  Binoculars,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  HandCoins,
+  Settings,
+  Wallet,
+} from "lucide-react-native";
 import type React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useI18n } from "../i18n";
@@ -11,6 +19,13 @@ interface CycleHeaderProps {
   actualBalance: number;
   remainingDaysCount: number;
   dailyAllowance: number;
+  projectedDailyAllowance: number;
+  showProjection: boolean;
+  cycleOffset: number;
+  onToggleProjection: () => void;
+  onPrevCycle: () => void;
+  onNextCycle: () => void;
+  onResetCycle: () => void;
   onOpenSettings: () => void;
   onOpenAccounts: () => void;
   onOpenPlanned: () => void;
@@ -44,6 +59,13 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   actualBalance,
   remainingDaysCount,
   dailyAllowance,
+  projectedDailyAllowance,
+  showProjection,
+  cycleOffset,
+  onToggleProjection,
+  onPrevCycle,
+  onNextCycle,
+  onResetCycle,
   onOpenSettings,
   onOpenAccounts,
   onOpenPlanned,
@@ -56,29 +78,69 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   const cycleRange = `${formattedStart} - ${formattedEnd}`;
 
   const roundedDaily = Math.floor(dailyAllowance);
-  const dailyText = `${cycle.currency}${roundedDaily.toLocaleString()}`;
+  const effectiveDaily = showProjection ? Math.floor(projectedDailyAllowance) : roundedDaily;
+  const effectiveDailyText = `${cycle.currency}${effectiveDaily.toLocaleString()}`;
   const daysText = t("tracker.daysLeft", { days: remainingDaysCount });
-  const paceText = t("tracker.perDay", { amount: dailyText });
+  const paceText = t("tracker.perDay", { amount: effectiveDailyText });
   const actualText = `${t("tracker.actualBalance")}: ${cycle.currency}${actualBalance.toLocaleString()}`;
 
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
-        <Text style={styles.cycleRangeText}>{cycleRange}</Text>
+        <View style={styles.cycleNavRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onPrevCycle}
+            accessibilityLabel={t("tracker.prevCycle")}
+            style={styles.navButton}
+          >
+            <ChevronLeft size={16} color={TOKENS.colors.textSecondary} />
+          </TouchableOpacity>
+          <Text style={styles.cycleRangeText}>{cycleRange}</Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onNextCycle}
+            accessibilityLabel={t("tracker.nextCycle")}
+            style={styles.navButton}
+          >
+            <ChevronRight size={16} color={TOKENS.colors.textSecondary} />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={onOpenSettings}
-          accessibilityLabel={t("settings.title")}
-          style={styles.settingsButton}
-        >
-          <Settings size={18} color={TOKENS.colors.textSecondary} />
-        </TouchableOpacity>
+          {cycleOffset !== 0 && (
+            <TouchableOpacity activeOpacity={0.7} onPress={onResetCycle} style={styles.todayPill}>
+              <Text style={styles.todayPillText}>{t("tracker.today")}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onToggleProjection}
+            style={[styles.iconButton, showProjection && styles.iconButtonActive]}
+          >
+            <Binoculars
+              size={18}
+              color={showProjection ? TOKENS.colors.primary : TOKENS.colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onOpenSettings}
+            accessibilityLabel={t("settings.title")}
+            style={styles.settingsButton}
+          >
+            <Settings size={18} color={TOKENS.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.balanceSection}>
-        <Text style={styles.balanceLabel}>{t("tracker.safeToSpend")}</Text>
-        <Text style={styles.balanceValue}>
+        <Text style={styles.balanceLabel}>
+          {showProjection ? t("tracker.projectionLabel") : t("tracker.safeToSpend")}
+        </Text>
+        <Text style={[styles.balanceValue, showProjection && styles.balanceValueProjected]}>
           {cycle.currency}
           {foreseeableBalance.toLocaleString()}
         </Text>
@@ -87,7 +149,9 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
           <Text style={styles.subtextDivider}>|</Text>
           <Text style={styles.subtextPace}>{daysText}</Text>
           <Text style={styles.subtextDivider}>|</Text>
-          <Text style={styles.subtextPace}>{paceText}</Text>
+          <Text style={[styles.subtextPace, showProjection && styles.subtextPaceProjected]}>
+            {paceText}
+          </Text>
         </View>
       </View>
 
@@ -120,14 +184,55 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: TOKENS.spacing.sm,
+    marginBottom: TOKENS.spacing.md,
+  },
+  cycleNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  navButton: {
+    padding: 4,
+    borderRadius: TOKENS.radii.sm,
+    backgroundColor: TOKENS.colors.surfaceElevated,
   },
   cycleRangeText: {
     fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 1,
-    color: TOKENS.colors.textMuted,
-    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    color: TOKENS.colors.textSecondary,
+    paddingHorizontal: 2,
+  },
+  todayPill: {
+    backgroundColor: TOKENS.colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: TOKENS.radii.pill,
+    marginLeft: 4,
+  },
+  todayPillText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: TOKENS.colors.textOnPrimary,
+  },
+  headerRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: TOKENS.spacing.xs,
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: TOKENS.radii.pill,
+    backgroundColor: TOKENS.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconButtonActive: {
+    borderColor: TOKENS.colors.primary,
+    backgroundColor: "rgba(255, 229, 0, 0.1)",
   },
   settingsButton: {
     width: 36,
@@ -140,58 +245,68 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   balanceSection: {
-    marginTop: TOKENS.spacing.xs,
+    alignItems: "center",
+    marginBottom: TOKENS.spacing.lg,
   },
   balanceLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontSize: 12,
+    fontWeight: "600",
     letterSpacing: 1,
+    textTransform: "uppercase",
     color: TOKENS.colors.textMuted,
-    marginBottom: TOKENS.spacing.xs,
+    marginBottom: 4,
   },
   balanceValue: {
-    fontSize: 40,
+    fontSize: 34,
     fontWeight: "800",
     color: TOKENS.colors.textPrimary,
     letterSpacing: -1,
   },
+  balanceValueProjected: {
+    color: TOKENS.colors.textPrimary,
+  },
   subtextRow: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
+    marginTop: 6,
     gap: 6,
-    marginTop: TOKENS.spacing.xs,
+    flexWrap: "wrap",
+    justifyContent: "center",
   },
   subtextActual: {
     fontSize: 12,
-    fontWeight: "600",
-    color: TOKENS.colors.textSecondary,
+    color: TOKENS.colors.textMuted,
   },
   subtextDivider: {
-    fontSize: 11,
+    fontSize: 12,
     color: TOKENS.colors.border,
   },
   subtextPace: {
     fontSize: 12,
     fontWeight: "600",
+    color: TOKENS.colors.textSecondary,
+  },
+  subtextPaceProjected: {
     color: TOKENS.colors.primary,
+    fontWeight: "700",
   },
   hubRow: {
     flexDirection: "row",
     gap: TOKENS.spacing.sm,
-    marginTop: TOKENS.spacing.md,
+    justifyContent: "center",
   },
   hubPill: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     backgroundColor: TOKENS.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: TOKENS.colors.borderSubtle,
+    paddingVertical: TOKENS.spacing.sm,
+    paddingHorizontal: TOKENS.spacing.xs,
     borderRadius: TOKENS.radii.pill,
-    paddingHorizontal: TOKENS.spacing.md,
-    paddingVertical: TOKENS.spacing.xs,
   },
   hubPillText: {
     fontSize: 12,

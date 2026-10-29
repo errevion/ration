@@ -28,6 +28,9 @@ export interface CycleComputation {
   remainingBalance: number;
   remainingDaysCount: number;
   dailyAllowance: number;
+  projectedIncome: number;
+  projectedForeseeableBalance: number;
+  projectedDailyAllowance: number;
 }
 
 export function formatIsoDate(date: Date): string {
@@ -49,37 +52,41 @@ export function getMondayFirstDayOfWeek(date: Date): number {
 
 export function computeCycleRange(
   startDay = 1,
-  fromDate: Date = new Date()
+  fromDate: Date = new Date(),
+  cycleOffset = 0
 ): { startDate: string; endDate: string } {
   const clampedStartDay = Math.max(1, Math.min(31, Math.floor(startDay)));
   const year = fromDate.getFullYear();
   const month = fromDate.getMonth();
   const day = fromDate.getDate();
 
+  let baseStartMonth = month;
+  const baseStartYear = year;
+
   if (clampedStartDay === 1) {
-    const lastDay = new Date(year, month + 1, 0).getDate();
+    baseStartMonth += cycleOffset;
+    const startNorm = new Date(baseStartYear, baseStartMonth, 1);
+    const effYear = startNorm.getFullYear();
+    const effMonth = startNorm.getMonth();
+    const lastDay = new Date(effYear, effMonth + 1, 0).getDate();
     return {
-      startDate: `${year}-${String(month + 1).padStart(2, "0")}-01`,
-      endDate: `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`,
+      startDate: `${effYear}-${String(effMonth + 1).padStart(2, "0")}-01`,
+      endDate: `${effYear}-${String(effMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`,
     };
   }
 
-  let startYear = year;
-  let startMonth = month;
   if (day < clampedStartDay) {
-    startMonth = month - 1;
-    if (startMonth < 0) {
-      startMonth = 11;
-      startYear = year - 1;
-    }
+    baseStartMonth -= 1;
   }
+  baseStartMonth += cycleOffset;
 
-  let endYear = startYear;
-  let endMonth = startMonth + 1;
-  if (endMonth > 11) {
-    endMonth = 0;
-    endYear = startYear + 1;
-  }
+  const startNorm = new Date(baseStartYear, baseStartMonth, 1);
+  const startYear = startNorm.getFullYear();
+  const startMonth = startNorm.getMonth();
+
+  const endNorm = new Date(startYear, startMonth + 1, 1);
+  const endYear = endNorm.getFullYear();
+  const endMonth = endNorm.getMonth();
 
   const maxDaysStart = new Date(startYear, startMonth + 1, 0).getDate();
   const actualStartDay = Math.min(clampedStartDay, maxDaysStart);
@@ -188,6 +195,7 @@ export function computeCycleBudget(
   }
 
   let quarantinedAmount = 0;
+  let projectedIncome = 0;
   const commitmentByDate = new Map<string, number>();
 
   if (options?.plannedPayments) {
@@ -200,6 +208,14 @@ export function computeCycleBudget(
         p.dueDate <= cycle.endDate
       ) {
         quarantinedAmount += p.amount;
+      }
+      if (
+        !isBill &&
+        p.status === "pending" &&
+        p.dueDate >= referenceDate &&
+        p.dueDate <= cycle.endDate
+      ) {
+        projectedIncome += p.amount;
       }
       if (p.status === "pending") {
         const cur = commitmentByDate.get(p.dueDate) ?? 0;
@@ -218,6 +234,14 @@ export function computeCycleBudget(
       ) {
         quarantinedAmount += l.amount;
       }
+      if (
+        l.type === "lend" &&
+        l.status === "active" &&
+        l.dueDate >= referenceDate &&
+        l.dueDate <= cycle.endDate
+      ) {
+        projectedIncome += l.amount;
+      }
       if (l.type === "borrow" && l.status === "active") {
         const cur = commitmentByDate.get(l.dueDate) ?? 0;
         commitmentByDate.set(l.dueDate, cur + l.amount);
@@ -227,6 +251,9 @@ export function computeCycleBudget(
 
   const foreseeableBalance = Math.max(0, actualBalance - quarantinedAmount);
   const dailyAllowance = remainingDaysCount > 0 ? foreseeableBalance / remainingDaysCount : 0;
+  const projectedForeseeableBalance = foreseeableBalance + projectedIncome;
+  const projectedDailyAllowance =
+    remainingDaysCount > 0 ? projectedForeseeableBalance / remainingDaysCount : 0;
 
   const cycleDays: DailyAllocation[] = rawDays.map((day) => {
     const dayCommitment = commitmentByDate.get(day.date) ?? 0;
@@ -265,5 +292,8 @@ export function computeCycleBudget(
     remainingBalance: foreseeableBalance,
     remainingDaysCount,
     dailyAllowance,
+    projectedIncome,
+    projectedForeseeableBalance,
+    projectedDailyAllowance,
   };
 }

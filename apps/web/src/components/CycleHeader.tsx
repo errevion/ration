@@ -1,5 +1,13 @@
 import type { MoneyCycle } from "@ration/types";
-import { CalendarClock, HandCoins, Settings, Wallet } from "lucide-react";
+import {
+  Binoculars,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  HandCoins,
+  Settings,
+  Wallet,
+} from "lucide-react";
 import type React from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
@@ -10,6 +18,13 @@ interface CycleHeaderProps {
   actualBalance: number;
   remainingDaysCount: number;
   dailyAllowance: number;
+  projectedDailyAllowance: number;
+  showProjection: boolean;
+  cycleOffset: number;
+  onToggleProjection: () => void;
+  onPrevCycle: () => void;
+  onNextCycle: () => void;
+  onResetCycle: () => void;
   onOpenSettings: () => void;
   onOpenAccounts: () => void;
   onOpenPlanned: () => void;
@@ -43,6 +58,13 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   actualBalance,
   remainingDaysCount,
   dailyAllowance,
+  projectedDailyAllowance,
+  showProjection,
+  cycleOffset,
+  onToggleProjection,
+  onPrevCycle,
+  onNextCycle,
+  onResetCycle,
   onOpenSettings,
   onOpenAccounts,
   onOpenPlanned,
@@ -55,9 +77,10 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   const cycleRange = `${formattedStart} - ${formattedEnd}`;
 
   const roundedDaily = Math.floor(dailyAllowance);
-  const dailyText = `${cycle.currency}${roundedDaily}`;
+  const effectiveDaily = showProjection ? Math.floor(projectedDailyAllowance) : roundedDaily;
+  const effectiveDailyText = `${cycle.currency}${effectiveDaily.toLocaleString()}`;
   const daysText = t("tracker.daysLeft", { days: remainingDaysCount });
-  const paceText = t("tracker.perDay", { amount: dailyText });
+  const paceText = t("tracker.perDay", { amount: effectiveDailyText });
   const actualText = `${t("tracker.actualBalance")}: ${cycle.currency}${actualBalance.toLocaleString()}`;
 
   return (
@@ -77,99 +100,204 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
           alignItems: "center",
         }}
       >
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <button
+            type="button"
+            onClick={onPrevCycle}
+            aria-label={t("tracker.prevCycle")}
+            style={{
+              padding: "4px",
+              borderRadius: TOKENS.radii.sm,
+              backgroundColor: TOKENS.colors.surfaceElevated,
+              border: `1px solid ${TOKENS.colors.borderSubtle}`,
+              color: TOKENS.colors.textSecondary,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span
+            style={{
+              fontSize: "12px",
+              fontWeight: 700,
+              letterSpacing: "0.8px",
+              color: TOKENS.colors.textSecondary,
+              padding: "0 4px",
+            }}
+          >
+            {cycleRange}
+          </span>
+          <button
+            type="button"
+            onClick={onNextCycle}
+            aria-label={t("tracker.nextCycle")}
+            style={{
+              padding: "4px",
+              borderRadius: TOKENS.radii.sm,
+              backgroundColor: TOKENS.colors.surfaceElevated,
+              border: `1px solid ${TOKENS.colors.borderSubtle}`,
+              color: TOKENS.colors.textSecondary,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <ChevronRight size={16} />
+          </button>
+
+          {cycleOffset !== 0 && (
+            <button
+              type="button"
+              onClick={onResetCycle}
+              style={{
+                backgroundColor: TOKENS.colors.primary,
+                border: "none",
+                padding: "3px 8px",
+                borderRadius: TOKENS.radii.pill,
+                fontSize: "10px",
+                fontWeight: 700,
+                color: TOKENS.colors.textOnPrimary,
+                cursor: "pointer",
+                marginLeft: "4px",
+              }}
+            >
+              {t("tracker.today")}
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: TOKENS.spacing.xs }}>
+          <button
+            type="button"
+            onClick={onToggleProjection}
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: TOKENS.radii.pill,
+              backgroundColor: showProjection
+                ? "rgba(255, 229, 0, 0.12)"
+                : TOKENS.colors.surfaceElevated,
+              border: `1px solid ${showProjection ? TOKENS.colors.primary : TOKENS.colors.borderSubtle}`,
+              color: showProjection ? TOKENS.colors.primary : TOKENS.colors.textSecondary,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Binoculars size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            aria-label={t("settings.title")}
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: TOKENS.radii.pill,
+              backgroundColor: TOKENS.colors.surfaceElevated,
+              border: `1px solid ${TOKENS.colors.borderSubtle}`,
+              color: TOKENS.colors.textSecondary,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Settings size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "4px",
+          padding: `${TOKENS.spacing.sm} 0`,
+        }}
+      >
         <span
           style={{
             fontSize: "12px",
-            fontWeight: 700,
+            fontWeight: 600,
             letterSpacing: "1px",
-            color: TOKENS.colors.textMuted,
             textTransform: "uppercase",
+            color: TOKENS.colors.textMuted,
           }}
         >
-          {cycleRange}
+          {showProjection ? t("tracker.projectionLabel") : t("tracker.safeToSpend")}
         </span>
-
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          aria-label={t("settings.title")}
+        <span
           style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: TOKENS.radii.pill,
-            backgroundColor: TOKENS.colors.surfaceElevated,
-            border: `1px solid ${TOKENS.colors.borderSubtle}`,
-            color: TOKENS.colors.textSecondary,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          <Settings size={18} />
-        </button>
-      </div>
-
-      <div>
-        <div
-          style={{
-            fontSize: "11px",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "1px",
-            color: TOKENS.colors.textMuted,
-            marginBottom: TOKENS.spacing.xs,
-          }}
-        >
-          {t("tracker.safeToSpend")}
-        </div>
-
-        <div
-          style={{
-            fontSize: "44px",
+            fontSize: "36px",
             fontWeight: 800,
             color: TOKENS.colors.textPrimary,
             letterSpacing: "-1px",
-            lineHeight: 1.1,
-            fontVariantNumeric: "tabular-nums",
           }}
         >
           {cycle.currency}
           {foreseeableBalance.toLocaleString()}
-        </div>
-
+        </span>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            flexWrap: "wrap",
             gap: "8px",
-            marginTop: TOKENS.spacing.xs,
-            fontSize: "13px",
-            fontWeight: 600,
+            marginTop: "4px",
+            flexWrap: "wrap",
+            justifyContent: "center",
           }}
         >
-          <span style={{ color: TOKENS.colors.textSecondary }}>{actualText}</span>
-          <span style={{ color: TOKENS.colors.border }}>|</span>
-          <span style={{ color: TOKENS.colors.primary }}>{daysText}</span>
-          <span style={{ color: TOKENS.colors.border }}>|</span>
-          <span style={{ color: TOKENS.colors.primary }}>{paceText}</span>
+          <span style={{ fontSize: "12px", color: TOKENS.colors.textMuted }}>{actualText}</span>
+          <span style={{ fontSize: "12px", color: TOKENS.colors.border }}>|</span>
+          <span
+            style={{
+              fontSize: "12px",
+              fontWeight: 600,
+              color: TOKENS.colors.textSecondary,
+            }}
+          >
+            {daysText}
+          </span>
+          <span style={{ fontSize: "12px", color: TOKENS.colors.border }}>|</span>
+          <span
+            style={{
+              fontSize: "12px",
+              fontWeight: showProjection ? 700 : 600,
+              color: showProjection ? TOKENS.colors.primary : TOKENS.colors.textSecondary,
+            }}
+          >
+            {paceText}
+          </span>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: TOKENS.spacing.sm }}>
+      <div
+        style={{
+          display: "flex",
+          gap: TOKENS.spacing.sm,
+          justifyContent: "center",
+        }}
+      >
         <button
           type="button"
           onClick={onOpenAccounts}
           style={{
+            flex: 1,
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: "6px",
             backgroundColor: TOKENS.colors.surfaceElevated,
             border: `1px solid ${TOKENS.colors.borderSubtle}`,
+            padding: `${TOKENS.spacing.sm} ${TOKENS.spacing.xs}`,
             borderRadius: TOKENS.radii.pill,
-            padding: `${TOKENS.spacing.xs} ${TOKENS.spacing.md}`,
             color: TOKENS.colors.textPrimary,
             fontSize: "12px",
             fontWeight: 700,
@@ -184,13 +312,15 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
           type="button"
           onClick={onOpenPlanned}
           style={{
+            flex: 1,
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: "6px",
             backgroundColor: TOKENS.colors.surfaceElevated,
             border: `1px solid ${TOKENS.colors.borderSubtle}`,
+            padding: `${TOKENS.spacing.sm} ${TOKENS.spacing.xs}`,
             borderRadius: TOKENS.radii.pill,
-            padding: `${TOKENS.spacing.xs} ${TOKENS.spacing.md}`,
             color: TOKENS.colors.textPrimary,
             fontSize: "12px",
             fontWeight: 700,
@@ -205,13 +335,15 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
           type="button"
           onClick={onOpenLoans}
           style={{
+            flex: 1,
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: "6px",
             backgroundColor: TOKENS.colors.surfaceElevated,
             border: `1px solid ${TOKENS.colors.borderSubtle}`,
+            padding: `${TOKENS.spacing.sm} ${TOKENS.spacing.xs}`,
             borderRadius: TOKENS.radii.pill,
-            padding: `${TOKENS.spacing.xs} ${TOKENS.spacing.md}`,
             color: TOKENS.colors.textPrimary,
             fontSize: "12px",
             fontWeight: 700,
