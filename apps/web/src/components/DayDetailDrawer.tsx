@@ -35,7 +35,9 @@ export const DayDetailDrawer: React.FC<DayDetailDrawerProps> = ({
     : [];
   const dayLoans = day ? loans.filter((l) => l.dueDate === day.date && l.status === "active") : [];
 
-  const displayAmount = day ? (day.isPast ? day.spentAmount : day.projectedQuota) : 0;
+  const actualAmount = day ? (day.actualQuota ?? day.projectedQuota) : 0;
+  const hasProjectedDifference = Boolean(day?.isFuture && day.projectedQuota > actualAmount);
+  const displayAmount = day ? (day.isPast ? day.spentAmount : actualAmount) : 0;
   const statusLabel = day?.isPast
     ? t("tracker.spentToday", { amount: formatCurrency(day.spentAmount, currency) })
     : t("tracker.dailyBudget");
@@ -129,37 +131,106 @@ export const DayDetailDrawer: React.FC<DayDetailDrawerProps> = ({
           </button>
         </div>
 
-        <div
-          style={{
-            backgroundColor: TOKENS.colors.surfaceElevated,
-            borderRadius: TOKENS.radii.md,
-            border: `1px solid ${TOKENS.colors.borderSubtle}`,
-            padding: TOKENS.spacing.md,
-          }}
-        >
+        {hasProjectedDifference ? (
+          <div style={{ display: "flex", gap: TOKENS.spacing.xs }}>
+            <div
+              style={{
+                flex: 1,
+                backgroundColor: TOKENS.colors.surfaceElevated,
+                borderRadius: TOKENS.radii.md,
+                border: `1px solid ${TOKENS.colors.borderSubtle}`,
+                padding: TOKENS.spacing.sm,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: TOKENS.colors.textMuted,
+                  marginBottom: "2px",
+                }}
+              >
+                {t("tracker.actualQuota")}
+              </div>
+              <div
+                style={{
+                  fontSize: "18px",
+                  fontWeight: 800,
+                  color: TOKENS.colors.textPrimary,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {formatCurrency(actualAmount, currency)}
+              </div>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(255, 229, 0, 0.05)",
+                borderRadius: TOKENS.radii.md,
+                border: `1px solid ${TOKENS.colors.primary}`,
+                padding: TOKENS.spacing.sm,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: TOKENS.colors.primary,
+                  marginBottom: "2px",
+                }}
+              >
+                {t("tracker.projectedQuota")}
+              </div>
+              <div
+                style={{
+                  fontSize: "18px",
+                  fontWeight: 800,
+                  color: TOKENS.colors.primary,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {formatCurrency(day?.projectedQuota ?? 0, currency)}
+              </div>
+            </div>
+          </div>
+        ) : (
           <div
             style={{
-              fontSize: "11px",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              color: TOKENS.colors.textMuted,
-              marginBottom: "4px",
+              backgroundColor: TOKENS.colors.surfaceElevated,
+              borderRadius: TOKENS.radii.md,
+              border: `1px solid ${TOKENS.colors.borderSubtle}`,
+              padding: TOKENS.spacing.md,
             }}
           >
-            {statusLabel}
+            <div
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                color: TOKENS.colors.textMuted,
+                marginBottom: "4px",
+              }}
+            >
+              {statusLabel}
+            </div>
+            <div
+              style={{
+                fontSize: "24px",
+                fontWeight: 800,
+                color: TOKENS.colors.textPrimary,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {formatCurrency(displayAmount, currency)}
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: "24px",
-              fontWeight: 800,
-              color: TOKENS.colors.textPrimary,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {formatCurrency(displayAmount, currency)}
-          </div>
-        </div>
+        )}
 
         {(dayPayments.length > 0 || dayLoans.length > 0) && (
           <div

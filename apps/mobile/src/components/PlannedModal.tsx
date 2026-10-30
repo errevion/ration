@@ -125,7 +125,20 @@ export const PlannedModal: React.FC<PlannedModalProps> = ({
     setEditingPayment(null);
   }
 
-  if (!visible) return null;
+  const activePayments = useMemo(
+    () =>
+      plannedPayments
+        .filter((p) => p.status === "pending")
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
+    [plannedPayments]
+  );
+  const settledPayments = useMemo(
+    () =>
+      plannedPayments
+        .filter((p) => p.status !== "pending")
+        .sort((a, b) => (b.createdAt || b.dueDate).localeCompare(a.createdAt || a.dueDate)),
+    [plannedPayments]
+  );
 
   const backdropOpacity = anim.interpolate({
     inputRange: [0, 1],
@@ -136,6 +149,8 @@ export const PlannedModal: React.FC<PlannedModalProps> = ({
     inputRange: [0, 1],
     outputRange: [550, 0],
   });
+
+  if (!visible) return null;
 
   return (
     <>
@@ -174,78 +189,74 @@ export const PlannedModal: React.FC<PlannedModalProps> = ({
                 {plannedPayments.length === 0 ? (
                   <Text style={styles.emptyText}>{t("planned.emptyPlanned")}</Text>
                 ) : (
-                  plannedPayments.map((item) => {
-                    const isIncome = (item.type ?? "spend") === "income";
-                    return (
-                      <View key={item.id} style={styles.card}>
-                        <View style={styles.cardTop}>
-                          <View style={styles.cardInfo}>
-                            <View style={styles.typeBadgeRow}>
-                              <View
-                                style={[
-                                  styles.typeBadge,
-                                  isIncome ? styles.badgeIncome : styles.badgeBill,
-                                ]}
-                              >
-                                {isIncome ? (
-                                  <ArrowUpRight size={12} color={TOKENS.colors.success} />
-                                ) : (
-                                  <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
-                                )}
-                                <Text
+                  <>
+                    {activePayments.map((item) => {
+                      const isIncome = (item.type ?? "spend") === "income";
+                      return (
+                        <View key={item.id} style={styles.card}>
+                          <View style={styles.cardTop}>
+                            <View style={styles.cardInfo}>
+                              <View style={styles.typeBadgeRow}>
+                                <View
                                   style={[
-                                    styles.typeBadgeText,
-                                    isIncome ? styles.textIncome : styles.textBill,
+                                    styles.typeBadge,
+                                    isIncome ? styles.badgeIncome : styles.badgeBill,
                                   ]}
                                 >
-                                  {isIncome ? t("planned.incomeLabel") : t("planned.billLabel")}
-                                </Text>
-                              </View>
-                              {item.isRecurring && (
-                                <View style={styles.recurringPill}>
-                                  <Text style={styles.recurringPillText}>R</Text>
+                                  {isIncome ? (
+                                    <ArrowUpRight size={12} color={TOKENS.colors.success} />
+                                  ) : (
+                                    <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
+                                  )}
+                                  <Text
+                                    style={[
+                                      styles.typeBadgeText,
+                                      isIncome ? styles.textIncome : styles.textBill,
+                                    ]}
+                                  >
+                                    {isIncome ? t("planned.incomeLabel") : t("planned.billLabel")}
+                                  </Text>
                                 </View>
-                              )}
-                              <Text style={styles.cardTitle}>{item.name}</Text>
+                                {item.isRecurring && (
+                                  <View style={styles.recurringPill}>
+                                    <Text style={styles.recurringPillText}>
+                                      {item.recurrenceFrequency === "weekly" ? "W" : "R"}
+                                    </Text>
+                                  </View>
+                                )}
+                                <Text style={styles.cardTitle}>{item.name}</Text>
+                              </View>
+                              <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
                             </View>
-                            <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
-                          </View>
-                          <Text style={styles.cardAmount}>
-                            {formatCurrency(item.amount, currency)}
-                          </Text>
-                        </View>
-
-                        <View style={styles.cardFooter}>
-                          <View style={styles.cardFooterLeft}>
-                            <Text style={styles.cardSubtitle}>
-                              {item.status === "completed"
-                                ? isIncome
-                                  ? t("planned.received")
-                                  : t("planned.paid")
-                                : isIncome
-                                  ? t("planned.typeIncome")
-                                  : t("planned.activeDebt")}
+                            <Text style={styles.cardAmount}>
+                              {formatCurrency(item.amount, currency)}
                             </Text>
-
-                            <View style={styles.iconActionsRow}>
-                              <TouchableOpacity
-                                activeOpacity={0.7}
-                                style={styles.iconButton}
-                                onPress={() => handleOpenEdit(item)}
-                              >
-                                <Pencil size={13} color={TOKENS.colors.textSecondary} />
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                activeOpacity={0.7}
-                                style={styles.iconButton}
-                                onPress={() => onDeletePlannedPayment(item.id)}
-                              >
-                                <Trash2 size={13} color={TOKENS.colors.danger} />
-                              </TouchableOpacity>
-                            </View>
                           </View>
 
-                          {item.status === "pending" && (
+                          <View style={styles.cardFooter}>
+                            <View style={styles.cardFooterLeft}>
+                              <Text style={styles.cardSubtitle}>
+                                {isIncome ? t("planned.typeIncome") : t("planned.activeDebt")}
+                              </Text>
+
+                              <View style={styles.iconActionsRow}>
+                                <TouchableOpacity
+                                  activeOpacity={0.7}
+                                  style={styles.iconButton}
+                                  onPress={() => handleOpenEdit(item)}
+                                >
+                                  <Pencil size={13} color={TOKENS.colors.textSecondary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  activeOpacity={0.7}
+                                  style={styles.iconButton}
+                                  onPress={() => onDeletePlannedPayment(item.id)}
+                                >
+                                  <Trash2 size={13} color={TOKENS.colors.danger} />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+
                             <TouchableOpacity
                               activeOpacity={0.7}
                               style={styles.actionButton}
@@ -256,11 +267,82 @@ export const PlannedModal: React.FC<PlannedModalProps> = ({
                                 {isIncome ? t("planned.markReceived") : t("planned.markPaid")}
                               </Text>
                             </TouchableOpacity>
-                          )}
+                          </View>
                         </View>
-                      </View>
-                    );
-                  })
+                      );
+                    })}
+
+                    {settledPayments.length > 0 && (
+                      <>
+                        <Text style={styles.sectionLabel}>{t("planned.history")}</Text>
+                        {settledPayments.map((item) => {
+                          const isIncome = (item.type ?? "spend") === "income";
+                          return (
+                            <View key={item.id} style={[styles.card, styles.cardSettled]}>
+                              <View style={styles.cardTop}>
+                                <View style={styles.cardInfo}>
+                                  <View style={styles.typeBadgeRow}>
+                                    <View
+                                      style={[
+                                        styles.typeBadge,
+                                        isIncome ? styles.badgeIncome : styles.badgeBill,
+                                      ]}
+                                    >
+                                      {isIncome ? (
+                                        <ArrowUpRight size={12} color={TOKENS.colors.success} />
+                                      ) : (
+                                        <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
+                                      )}
+                                      <Text
+                                        style={[
+                                          styles.typeBadgeText,
+                                          isIncome ? styles.textIncome : styles.textBill,
+                                        ]}
+                                      >
+                                        {isIncome
+                                          ? t("planned.incomeLabel")
+                                          : t("planned.billLabel")}
+                                      </Text>
+                                    </View>
+                                    {item.isRecurring && (
+                                      <View style={styles.recurringPill}>
+                                        <Text style={styles.recurringPillText}>
+                                          {item.recurrenceFrequency === "weekly" ? "W" : "R"}
+                                        </Text>
+                                      </View>
+                                    )}
+                                    <Text style={styles.cardTitle}>{item.name}</Text>
+                                  </View>
+                                  <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
+                                </View>
+                                <Text style={styles.cardAmount}>
+                                  {formatCurrency(item.amount, currency)}
+                                </Text>
+                              </View>
+
+                              <View style={styles.cardFooter}>
+                                <View style={styles.cardFooterLeft}>
+                                  <Text style={styles.cardSubtitle}>
+                                    {isIncome ? t("planned.received") : t("planned.paid")}
+                                  </Text>
+
+                                  <View style={styles.iconActionsRow}>
+                                    <TouchableOpacity
+                                      activeOpacity={0.7}
+                                      style={styles.iconButton}
+                                      onPress={() => onDeletePlannedPayment(item.id)}
+                                    >
+                                      <Trash2 size={13} color={TOKENS.colors.danger} />
+                                    </TouchableOpacity>
+                                  </View>
+                                </View>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
                 )}
               </View>
             </ScrollView>
@@ -296,7 +378,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: TOKENS.colors.border,
     padding: TOKENS.spacing.lg,
-    maxHeight: "85%",
+    height: "72%",
+    maxHeight: "72%",
     gap: TOKENS.spacing.md,
   },
   header: {
@@ -454,5 +537,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: TOKENS.colors.primary,
+  },
+  cardSettled: {
+    opacity: 0.6,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    color: TOKENS.colors.textMuted,
+    marginTop: TOKENS.spacing.sm,
+    marginBottom: TOKENS.spacing.xs,
   },
 });

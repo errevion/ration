@@ -1,7 +1,7 @@
 import type { Account, PlannedPayment, TransactionType } from "@ration/types";
 import { ArrowDownLeft, ArrowUpRight, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useI18n } from "../i18n/index.js";
 import { TOKENS } from "../theme/tokens.js";
 import { formatCurrency } from "../utils/formatters.js";
@@ -50,6 +50,21 @@ export const PlannedDrawer: React.FC<PlannedDrawerProps> = ({
   const { t } = useI18n();
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<PlannedPayment | null>(null);
+
+  const activePayments = useMemo(
+    () =>
+      plannedPayments
+        .filter((p) => p.status === "pending")
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
+    [plannedPayments]
+  );
+  const settledPayments = useMemo(
+    () =>
+      plannedPayments
+        .filter((p) => p.status !== "pending")
+        .sort((a, b) => (b.createdAt || b.dueDate).localeCompare(a.createdAt || a.dueDate)),
+    [plannedPayments]
+  );
 
   function handleOpenCreate() {
     setEditingPayment(null);
@@ -117,7 +132,8 @@ export const PlannedDrawer: React.FC<PlannedDrawerProps> = ({
             display: "flex",
             flexDirection: "column",
             gap: TOKENS.spacing.md,
-            maxHeight: "85vh",
+            height: "75vh",
+            maxHeight: "75vh",
             overflowY: "auto",
             overflowX: "hidden",
             scrollbarWidth: "none",
@@ -203,179 +219,173 @@ export const PlannedDrawer: React.FC<PlannedDrawerProps> = ({
                 {t("planned.emptyPlanned")}
               </div>
             ) : (
-              plannedPayments.map((item) => {
-                const isIncome = (item.type ?? "spend") === "income";
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      backgroundColor: TOKENS.colors.surfaceElevated,
-                      border: `1px solid ${TOKENS.colors.borderSubtle}`,
-                      borderRadius: TOKENS.radii.md,
-                      padding: TOKENS.spacing.md,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: TOKENS.spacing.sm,
-                    }}
-                  >
+              <>
+                {activePayments.map((item) => {
+                  const isIncome = (item.type ?? "spend") === "income";
+                  return (
                     <div
+                      key={item.id}
                       style={{
+                        backgroundColor: TOKENS.colors.surfaceElevated,
+                        border: `1px solid ${TOKENS.colors.borderSubtle}`,
+                        borderRadius: TOKENS.radii.md,
+                        padding: TOKENS.spacing.md,
                         display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
+                        flexDirection: "column",
+                        gap: TOKENS.spacing.sm,
                       }}
                     >
                       <div
                         style={{
                           display: "flex",
-                          flexDirection: "column",
-                          gap: "4px",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
                         }}
                       >
                         <div
                           style={{
                             display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
+                            flexDirection: "column",
+                            gap: "4px",
                           }}
                         >
                           <div
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: "4px",
-                              padding: "2px 6px",
-                              borderRadius: TOKENS.radii.pill,
-                              backgroundColor: isIncome
-                                ? "rgba(0, 230, 118, 0.12)"
-                                : "rgba(255, 68, 68, 0.12)",
+                              gap: "6px",
                             }}
                           >
-                            {isIncome ? (
-                              <ArrowUpRight size={12} color={TOKENS.colors.success} />
-                            ) : (
-                              <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                padding: "2px 6px",
+                                borderRadius: TOKENS.radii.pill,
+                                backgroundColor: isIncome
+                                  ? "rgba(0, 230, 118, 0.12)"
+                                  : "rgba(255, 68, 68, 0.12)",
+                              }}
+                            >
+                              {isIncome ? (
+                                <ArrowUpRight size={12} color={TOKENS.colors.success} />
+                              ) : (
+                                <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
+                              )}
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  fontWeight: 700,
+                                  textTransform: "uppercase",
+                                  color: isIncome ? TOKENS.colors.success : TOKENS.colors.danger,
+                                }}
+                              >
+                                {isIncome ? t("planned.incomeLabel") : t("planned.billLabel")}
+                              </span>
+                            </div>
+                            {item.isRecurring && (
+                              <span
+                                style={{
+                                  padding: "1px 5px",
+                                  borderRadius: "4px",
+                                  backgroundColor: TOKENS.colors.surfaceSubtle,
+                                  border: `1px solid ${TOKENS.colors.borderSubtle}`,
+                                  fontSize: "9px",
+                                  fontWeight: 700,
+                                  color: TOKENS.colors.primary,
+                                }}
+                              >
+                                {item.recurrenceFrequency === "weekly" ? "W" : "R"}
+                              </span>
                             )}
                             <span
                               style={{
-                                fontSize: "10px",
+                                fontSize: "14px",
                                 fontWeight: 700,
-                                textTransform: "uppercase",
-                                color: isIncome ? TOKENS.colors.success : TOKENS.colors.danger,
+                                color: TOKENS.colors.textPrimary,
                               }}
                             >
-                              {isIncome ? t("planned.incomeLabel") : t("planned.billLabel")}
+                              {item.name}
                             </span>
                           </div>
-                          {item.isRecurring && (
-                            <span
-                              style={{
-                                padding: "1px 5px",
-                                borderRadius: "4px",
-                                backgroundColor: TOKENS.colors.surfaceSubtle,
-                                border: `1px solid ${TOKENS.colors.borderSubtle}`,
-                                fontSize: "9px",
-                                fontWeight: 700,
-                                color: TOKENS.colors.primary,
-                              }}
-                            >
-                              R
-                            </span>
-                          )}
                           <span
                             style={{
-                              fontSize: "14px",
-                              fontWeight: 700,
-                              color: TOKENS.colors.textPrimary,
+                              fontSize: "12px",
+                              color: TOKENS.colors.textSecondary,
                             }}
                           >
-                            {item.name}
+                            {item.dueDate}
                           </span>
                         </div>
                         <span
                           style={{
-                            fontSize: "12px",
-                            color: TOKENS.colors.textSecondary,
+                            fontSize: "14px",
+                            fontWeight: 700,
+                            color: TOKENS.colors.textPrimary,
                           }}
                         >
-                          {item.dueDate}
+                          {formatCurrency(item.amount, currency)}
                         </span>
                       </div>
-                      <span
+
+                      <div
                         style={{
-                          fontSize: "14px",
-                          fontWeight: 700,
-                          color: TOKENS.colors.textPrimary,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          borderTop: `1px solid ${TOKENS.colors.borderSubtle}`,
+                          paddingTop: TOKENS.spacing.xs,
                         }}
                       >
-                        {formatCurrency(item.amount, currency)}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        borderTop: `1px solid ${TOKENS.colors.borderSubtle}`,
-                        paddingTop: TOKENS.spacing.xs,
-                      }}
-                    >
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: TOKENS.spacing.sm }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            color: TOKENS.colors.textSecondary,
-                          }}
+                        <div
+                          style={{ display: "flex", alignItems: "center", gap: TOKENS.spacing.sm }}
                         >
-                          {item.status === "completed"
-                            ? isIncome
-                              ? t("planned.received")
-                              : t("planned.paid")
-                            : isIncome
-                              ? t("planned.typeIncome")
-                              : t("planned.activeDebt")}
-                        </span>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(item)}
+                          <span
                             style={{
-                              padding: "4px",
-                              border: "none",
-                              borderRadius: TOKENS.radii.sm,
-                              backgroundColor: TOKENS.colors.surfaceSubtle,
+                              fontSize: "12px",
                               color: TOKENS.colors.textSecondary,
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
                             }}
                           >
-                            <Pencil size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onDeletePlannedPayment(item.id)}
-                            style={{
-                              padding: "4px",
-                              border: "none",
-                              borderRadius: TOKENS.radii.sm,
-                              backgroundColor: TOKENS.colors.surfaceSubtle,
-                              color: TOKENS.colors.danger,
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </div>
+                            {isIncome ? t("planned.typeIncome") : t("planned.activeDebt")}
+                          </span>
 
-                      {item.status === "pending" && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(item)}
+                              style={{
+                                padding: "4px",
+                                border: "none",
+                                borderRadius: TOKENS.radii.sm,
+                                backgroundColor: TOKENS.colors.surfaceSubtle,
+                                color: TOKENS.colors.textSecondary,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDeletePlannedPayment(item.id)}
+                              style={{
+                                padding: "4px",
+                                border: "none",
+                                borderRadius: TOKENS.radii.sm,
+                                backgroundColor: TOKENS.colors.surfaceSubtle,
+                                color: TOKENS.colors.danger,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => onMarkPaymentPaid(item.id)}
@@ -398,11 +408,189 @@ export const PlannedDrawer: React.FC<PlannedDrawerProps> = ({
                             {isIncome ? t("planned.markReceived") : t("planned.markPaid")}
                           </span>
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+
+                {settledPayments.length > 0 && (
+                  <>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        color: TOKENS.colors.textMuted,
+                        marginTop: TOKENS.spacing.sm,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {t("planned.history")}
+                    </div>
+                    {settledPayments.map((item) => {
+                      const isIncome = (item.type ?? "spend") === "income";
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            backgroundColor: TOKENS.colors.surfaceElevated,
+                            border: `1px solid ${TOKENS.colors.borderSubtle}`,
+                            borderRadius: TOKENS.radii.md,
+                            padding: TOKENS.spacing.md,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: TOKENS.spacing.sm,
+                            opacity: 0.6,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    padding: "2px 6px",
+                                    borderRadius: TOKENS.radii.pill,
+                                    backgroundColor: isIncome
+                                      ? "rgba(0, 230, 118, 0.12)"
+                                      : "rgba(255, 68, 68, 0.12)",
+                                  }}
+                                >
+                                  {isIncome ? (
+                                    <ArrowUpRight size={12} color={TOKENS.colors.success} />
+                                  ) : (
+                                    <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
+                                  )}
+                                  <span
+                                    style={{
+                                      fontSize: "10px",
+                                      fontWeight: 700,
+                                      textTransform: "uppercase",
+                                      color: isIncome
+                                        ? TOKENS.colors.success
+                                        : TOKENS.colors.danger,
+                                    }}
+                                  >
+                                    {isIncome ? t("planned.incomeLabel") : t("planned.billLabel")}
+                                  </span>
+                                </div>
+                                {item.isRecurring && (
+                                  <span
+                                    style={{
+                                      padding: "1px 5px",
+                                      borderRadius: "4px",
+                                      backgroundColor: TOKENS.colors.surfaceSubtle,
+                                      border: `1px solid ${TOKENS.colors.borderSubtle}`,
+                                      fontSize: "9px",
+                                      fontWeight: 700,
+                                      color: TOKENS.colors.primary,
+                                    }}
+                                  >
+                                    {item.recurrenceFrequency === "weekly" ? "W" : "R"}
+                                  </span>
+                                )}
+                                <span
+                                  style={{
+                                    fontSize: "14px",
+                                    fontWeight: 700,
+                                    color: TOKENS.colors.textPrimary,
+                                  }}
+                                >
+                                  {item.name}
+                                </span>
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: TOKENS.colors.textSecondary,
+                                }}
+                              >
+                                {item.dueDate}
+                              </span>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: TOKENS.colors.textPrimary,
+                              }}
+                            >
+                              {formatCurrency(item.amount, currency)}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              borderTop: `1px solid ${TOKENS.colors.borderSubtle}`,
+                              paddingTop: TOKENS.spacing.xs,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: TOKENS.spacing.sm,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: TOKENS.colors.textSecondary,
+                                }}
+                              >
+                                {isIncome ? t("planned.received") : t("planned.paid")}
+                              </span>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => onDeletePlannedPayment(item.id)}
+                                  style={{
+                                    padding: "4px",
+                                    border: "none",
+                                    borderRadius: TOKENS.radii.sm,
+                                    backgroundColor: TOKENS.colors.surfaceSubtle,
+                                    color: TOKENS.colors.danger,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

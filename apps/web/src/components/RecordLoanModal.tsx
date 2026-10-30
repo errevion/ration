@@ -253,7 +253,7 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder={t("keypad.zero")}
+              placeholder={t("common.zero")}
               style={{
                 height: "44px",
                 backgroundColor: TOKENS.colors.surfaceElevated,
@@ -390,7 +390,7 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
                 cursor: "pointer",
               }}
             >
-              {t("tracker.cancel")}
+              {t("common.cancel")}
             </button>
             <button
               type="button"

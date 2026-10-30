@@ -16,10 +16,11 @@ import { TOKENS } from "../theme/tokens";
 interface CycleHeaderProps {
   cycle: MoneyCycle;
   foreseeableBalance: number;
+  projectedForeseeableBalance?: number;
   actualBalance: number;
   remainingDaysCount: number;
-  dailyAllowance: number;
-  projectedDailyAllowance: number;
+  dailyAllowance?: number;
+  projectedDailyAllowance?: number;
   showProjection: boolean;
   cycleOffset: number;
   onToggleProjection: () => void;
@@ -56,10 +57,9 @@ function formatDisplayDate(isoDate: string): string {
 export const CycleHeader: React.FC<CycleHeaderProps> = ({
   cycle,
   foreseeableBalance,
+  projectedForeseeableBalance,
   actualBalance,
   remainingDaysCount,
-  dailyAllowance,
-  projectedDailyAllowance,
   showProjection,
   cycleOffset,
   onToggleProjection,
@@ -77,12 +77,12 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   const formattedEnd = formatDisplayDate(cycle.endDate);
   const cycleRange = `${formattedStart} - ${formattedEnd}`;
 
-  const roundedDaily = Math.floor(dailyAllowance);
-  const effectiveDaily = showProjection ? Math.floor(projectedDailyAllowance) : roundedDaily;
-  const effectiveDailyText = `${cycle.currency}${effectiveDaily.toLocaleString()}`;
   const daysText = t("tracker.daysLeft", { days: remainingDaysCount });
-  const paceText = t("tracker.perDay", { amount: effectiveDailyText });
   const actualText = `${t("tracker.actualBalance")}: ${cycle.currency}${actualBalance.toLocaleString()}`;
+  const displayedForeseeable =
+    showProjection && projectedForeseeableBalance !== undefined
+      ? projectedForeseeableBalance
+      : foreseeableBalance;
 
   return (
     <View style={styles.container}>
@@ -142,16 +142,12 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
         </Text>
         <Text style={[styles.balanceValue, showProjection && styles.balanceValueProjected]}>
           {cycle.currency}
-          {foreseeableBalance.toLocaleString()}
+          {displayedForeseeable.toLocaleString()}
         </Text>
         <View style={styles.subtextRow}>
           <Text style={styles.subtextActual}>{actualText}</Text>
           <Text style={styles.subtextDivider}>|</Text>
           <Text style={styles.subtextPace}>{daysText}</Text>
-          <Text style={styles.subtextDivider}>|</Text>
-          <Text style={[styles.subtextPace, showProjection && styles.subtextPaceProjected]}>
-            {paceText}
-          </Text>
         </View>
       </View>
 

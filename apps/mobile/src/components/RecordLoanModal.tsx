@@ -226,7 +226,7 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
                   <TextInput
                     value={amount}
                     onChangeText={setAmount}
-                    placeholder={t("keypad.zero")}
+                    placeholder={t("common.zero")}
                     placeholderTextColor={TOKENS.colors.textMuted}
                     keyboardType="numeric"
                     style={styles.textInput}
@@ -295,7 +295,7 @@ export const RecordLoanModal: React.FC<RecordLoanModalProps> = ({
                   style={styles.cancelButton}
                   onPress={handleDismiss}
                 >
-                  <Text style={styles.cancelButtonText}>{t("tracker.cancel")}</Text>
+                  <Text style={styles.cancelButtonText}>{t("common.cancel")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity

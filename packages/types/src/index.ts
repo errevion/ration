@@ -114,6 +114,9 @@ export type TransactionType = z.infer<typeof TransactionTypeSchema>;
 export const PlannedPaymentStatusSchema = z.enum(["pending", "completed", "cancelled"]);
 export type PlannedPaymentStatus = z.infer<typeof PlannedPaymentStatusSchema>;
 
+export const RecurrenceFrequencySchema = z.enum(["weekly", "monthly"]);
+export type RecurrenceFrequency = z.infer<typeof RecurrenceFrequencySchema>;
+
 export const PlannedPaymentSchema = z.object({
   id: EntityIdSchema,
   name: z.string().min(1).max(128),
@@ -123,6 +126,7 @@ export const PlannedPaymentSchema = z.object({
   accountId: EntityIdSchema.optional(),
   status: PlannedPaymentStatusSchema.default("pending"),
   isRecurring: z.boolean().default(false),
+  recurrenceFrequency: RecurrenceFrequencySchema.optional(),
   createdAt: z.string().datetime(),
 });
 export type PlannedPayment = z.infer<typeof PlannedPaymentSchema>;
@@ -135,6 +139,7 @@ export const CreatePlannedPaymentSchema = PlannedPaymentSchema.omit({
   type: TransactionTypeSchema.default("spend"),
   status: PlannedPaymentStatusSchema.default("pending"),
   isRecurring: z.boolean().default(false),
+  recurrenceFrequency: RecurrenceFrequencySchema.optional(),
 });
 export type CreatePlannedPaymentDto = z.infer<typeof CreatePlannedPaymentSchema>;
 
@@ -207,6 +212,7 @@ export const DailyAllocationSchema = z.object({
   spentAmount: z.number().nonnegative(),
   incomeAmount: z.number().nonnegative().default(0),
   projectedQuota: z.number().nonnegative(),
+  actualQuota: z.number().nonnegative().optional(),
   hasCommitment: z.boolean().default(false),
   commitmentAmount: z.number().nonnegative().default(0),
 });

@@ -1,4 +1,4 @@
-import type { Account, PlannedPayment, TransactionType } from "@ration/types";
+import type { Account, PlannedPayment, RecurrenceFrequency, TransactionType } from "@ration/types";
 import { Calendar, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -21,6 +21,7 @@ interface RecordPlannedPaymentModalProps {
       type: TransactionType;
       accountId?: string;
       isRecurring?: boolean;
+      recurrenceFrequency?: RecurrenceFrequency;
     },
     paymentIdToUpdate?: string
   ) => void;
@@ -44,6 +45,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
     () => accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id
   );
   const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>("monthly");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   useEffect(() => {
@@ -57,6 +59,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
           initialPayment.accountId ?? accounts.find((a) => a.isPrimary)?.id ?? accounts[0]?.id
         );
         setIsRecurring(Boolean(initialPayment.isRecurring));
+        setRecurrenceFrequency(initialPayment.recurrenceFrequency ?? "monthly");
       } else {
         setName("");
         setType("spend");
@@ -64,6 +67,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
         setDueDate(formatIsoDate(new Date()));
         setAccountId(accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id);
         setIsRecurring(false);
+        setRecurrenceFrequency("monthly");
       }
       setIsDatePickerOpen(false);
     }
@@ -82,6 +86,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
         dueDate,
         accountId,
         isRecurring,
+        recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
       },
       initialPayment?.id
     );
@@ -253,7 +258,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder={t("keypad.zero")}
+              placeholder={t("common.zero")}
               style={{
                 height: "44px",
                 backgroundColor: TOKENS.colors.surfaceElevated,
@@ -302,7 +307,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
             </button>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <button
               type="button"
               onClick={() => setIsRecurring((prev) => !prev)}
@@ -335,9 +340,62 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
                   color: isRecurring ? TOKENS.colors.textPrimary : TOKENS.colors.textSecondary,
                 }}
               >
-                {t("planned.recurringMonthly")}
+                {t("planned.recurring")}
               </span>
             </button>
+
+            {isRecurring && (
+              <div style={{ display: "flex", gap: TOKENS.spacing.xs }}>
+                <button
+                  type="button"
+                  onClick={() => setRecurrenceFrequency("weekly")}
+                  style={{
+                    flex: 1,
+                    height: "38px",
+                    borderRadius: TOKENS.radii.md,
+                    border: `1px solid ${recurrenceFrequency === "weekly" ? TOKENS.colors.primary : TOKENS.colors.borderSubtle}`,
+                    backgroundColor:
+                      recurrenceFrequency === "weekly"
+                        ? TOKENS.colors.primary
+                        : TOKENS.colors.surfaceElevated,
+                    color:
+                      recurrenceFrequency === "weekly"
+                        ? TOKENS.colors.textOnPrimary
+                        : TOKENS.colors.textSecondary,
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {t("planned.frequencyWeekly")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecurrenceFrequency("monthly")}
+                  style={{
+                    flex: 1,
+                    height: "38px",
+                    borderRadius: TOKENS.radii.md,
+                    border: `1px solid ${recurrenceFrequency === "monthly" ? TOKENS.colors.primary : TOKENS.colors.borderSubtle}`,
+                    backgroundColor:
+                      recurrenceFrequency === "monthly"
+                        ? TOKENS.colors.primary
+                        : TOKENS.colors.surfaceElevated,
+                    color:
+                      recurrenceFrequency === "monthly"
+                        ? TOKENS.colors.textOnPrimary
+                        : TOKENS.colors.textSecondary,
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {t("planned.frequencyMonthly")}
+                </button>
+              </div>
+            )}
           </div>
 
           {accounts.length > 0 && (
@@ -398,7 +456,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
                 cursor: "pointer",
               }}
             >
-              {t("tracker.cancel")}
+              {t("common.cancel")}
             </button>
             <button
               type="button"
