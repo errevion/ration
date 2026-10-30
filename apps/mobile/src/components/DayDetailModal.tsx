@@ -80,7 +80,9 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
   );
   const dayLoans = loans.filter((l) => l.dueDate === day.date && l.status === "active");
 
-  const displayAmount = day.isPast ? day.spentAmount : day.projectedQuota;
+  const actualAmount = day.actualQuota ?? day.projectedQuota;
+  const hasProjectedDifference = day.isFuture && day.projectedQuota > actualAmount;
+  const displayAmount = day.isPast ? day.spentAmount : actualAmount;
   const statusLabel = day.isPast
     ? t("tracker.spentToday", { amount: formatCurrency(day.spentAmount, currency) })
     : t("tracker.dailyBudget");
@@ -110,10 +112,27 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.amountBox}>
-            <Text style={styles.amountLabel}>{statusLabel}</Text>
-            <Text style={styles.amountValue}>{formatCurrency(displayAmount, currency)}</Text>
-          </View>
+          {hasProjectedDifference ? (
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonBox}>
+                <Text style={styles.amountLabel}>{t("tracker.actualQuota")}</Text>
+                <Text style={styles.comparisonValue}>{formatCurrency(actualAmount, currency)}</Text>
+              </View>
+              <View style={[styles.comparisonBox, styles.comparisonBoxProjected]}>
+                <Text style={[styles.amountLabel, styles.amountLabelProjected]}>
+                  {t("tracker.projectedQuota")}
+                </Text>
+                <Text style={[styles.comparisonValue, styles.comparisonValueProjected]}>
+                  {formatCurrency(day.projectedQuota, currency)}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.amountBox}>
+              <Text style={styles.amountLabel}>{statusLabel}</Text>
+              <Text style={styles.amountValue}>{formatCurrency(displayAmount, currency)}</Text>
+            </View>
+          )}
 
           {(dayPayments.length > 0 || dayLoans.length > 0) && (
             <View style={styles.commitmentsSection}>
@@ -250,6 +269,34 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "800",
     color: TOKENS.colors.textPrimary,
+  },
+  comparisonRow: {
+    flexDirection: "row",
+    gap: TOKENS.spacing.xs,
+  },
+  comparisonBox: {
+    flex: 1,
+    backgroundColor: TOKENS.colors.surfaceElevated,
+    borderRadius: TOKENS.radii.md,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    padding: TOKENS.spacing.sm,
+  },
+  comparisonBoxProjected: {
+    borderColor: TOKENS.colors.primary,
+    backgroundColor: "rgba(255, 229, 0, 0.05)",
+  },
+  comparisonValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: TOKENS.colors.textPrimary,
+    marginTop: 2,
+  },
+  comparisonValueProjected: {
+    color: TOKENS.colors.primary,
+  },
+  amountLabelProjected: {
+    color: TOKENS.colors.primary,
   },
   transactionList: {
     gap: TOKENS.spacing.xs,

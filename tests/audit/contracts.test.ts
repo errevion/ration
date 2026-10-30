@@ -19,6 +19,7 @@ import {
   PlannedPaymentSchema,
   PlannedPaymentStatusSchema,
   RationItemSchema,
+  RecurrenceFrequencySchema,
   SpendTransactionSchema,
   UpdateCycleSettingsSchema,
   UserRoleSchema,
@@ -265,10 +266,13 @@ describe("Domain Audit: Contract & Schema Parity", () => {
       amount: 250000,
       dueDate: "2025-11-05",
       isRecurring: true,
+      recurrenceFrequency: "weekly",
     };
     const parsedCreate = CreatePlannedPaymentSchema.parse(validCreate);
     expect(parsedCreate.isRecurring).toBe(true);
+    expect(parsedCreate.recurrenceFrequency).toBe("weekly");
     expect(PlannedPaymentStatusSchema.safeParse("unknown").success).toBe(false);
+    expect(RecurrenceFrequencySchema.safeParse("daily").success).toBe(false);
   });
 
   it("validates loan record schema for borrow and lend", () => {

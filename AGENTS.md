@@ -61,7 +61,7 @@ Before planning or writing any code, consult this inventory:
 - `MoneyCycleSchema`, `CreateMoneyCycleSchema`, `type MoneyCycle`, `type CreateMoneyCycleDto`
 - `UpdateCycleSettingsSchema`, `type UpdateCycleSettingsDto`
 - `AccountTypeSchema`, `AccountSchema`, `CreateAccountSchema`, `UpdateAccountSchema`, `type Account`, `type CreateAccountDto`
-- `PlannedPaymentStatusSchema`, `PlannedPaymentSchema`, `CreatePlannedPaymentSchema`, `UpdatePlannedPaymentSchema`, `type PlannedPayment`, `type CreatePlannedPaymentDto`, `type UpdatePlannedPaymentDto`
+- `PlannedPaymentStatusSchema`, `RecurrenceFrequencySchema`, `PlannedPaymentSchema`, `CreatePlannedPaymentSchema`, `UpdatePlannedPaymentSchema`, `type PlannedPayment`, `type RecurrenceFrequency`, `type CreatePlannedPaymentDto`, `type UpdatePlannedPaymentDto`
 - `LoanTypeSchema`, `LoanStatusSchema`, `LoanRecordSchema`, `CreateLoanRecordSchema`, `UpdateLoanRecordSchema`, `type LoanRecord`, `type CreateLoanRecordDto`, `type UpdateLoanRecordDto`
 - `TransactionTypeSchema`, `type TransactionType` (`spend`, `income`)
 - `SpendTransactionSchema`, `CreateSpendTransactionSchema`, `type SpendTransaction`, `type CreateSpendTransactionDto`

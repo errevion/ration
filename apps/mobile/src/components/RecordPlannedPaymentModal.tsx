@@ -1,4 +1,4 @@
-import type { Account, PlannedPayment, TransactionType } from "@ration/types";
+import type { Account, PlannedPayment, RecurrenceFrequency, TransactionType } from "@ration/types";
 import { Calendar, X } from "lucide-react-native";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -33,6 +33,7 @@ interface RecordPlannedPaymentModalProps {
       type: TransactionType;
       accountId?: string;
       isRecurring?: boolean;
+      recurrenceFrequency?: RecurrenceFrequency;
     },
     paymentIdToUpdate?: string
   ) => void;
@@ -58,6 +59,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
     () => accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id
   );
   const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>("monthly");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
           initialPayment.accountId ?? accounts.find((a) => a.isPrimary)?.id ?? accounts[0]?.id
         );
         setIsRecurring(Boolean(initialPayment.isRecurring));
+        setRecurrenceFrequency(initialPayment.recurrenceFrequency ?? "monthly");
       } else {
         setName("");
         setType("spend");
@@ -79,6 +82,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
         setDueDate(formatIsoDate(new Date()));
         setAccountId(accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id);
         setIsRecurring(false);
+        setRecurrenceFrequency("monthly");
       }
       setIsDatePickerOpen(false);
       Animated.timing(anim, {
@@ -121,6 +125,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
         dueDate,
         accountId,
         isRecurring,
+        recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
       },
       initialPayment?.id
     );
@@ -220,7 +225,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
                   <TextInput
                     value={amount}
                     onChangeText={setAmount}
-                    placeholder={t("keypad.zero")}
+                    placeholder={t("common.zero")}
                     placeholderTextColor={TOKENS.colors.textMuted}
                     keyboardType="numeric"
                     style={styles.textInput}
@@ -247,9 +252,48 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
                   >
                     <View style={[styles.checkbox, isRecurring && styles.checkboxActive]} />
                     <Text style={[styles.recurringText, isRecurring && styles.recurringTextActive]}>
-                      {t("planned.recurringMonthly")}
+                      {t("planned.recurring")}
                     </Text>
                   </TouchableOpacity>
+
+                  {isRecurring && (
+                    <View style={styles.frequencyRow}>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={[
+                          styles.frequencyPill,
+                          recurrenceFrequency === "weekly" && styles.frequencyPillActive,
+                        ]}
+                        onPress={() => setRecurrenceFrequency("weekly")}
+                      >
+                        <Text
+                          style={[
+                            styles.frequencyPillText,
+                            recurrenceFrequency === "weekly" && styles.frequencyPillTextActive,
+                          ]}
+                        >
+                          {t("planned.frequencyWeekly")}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        style={[
+                          styles.frequencyPill,
+                          recurrenceFrequency === "monthly" && styles.frequencyPillActive,
+                        ]}
+                        onPress={() => setRecurrenceFrequency("monthly")}
+                      >
+                        <Text
+                          style={[
+                            styles.frequencyPillText,
+                            recurrenceFrequency === "monthly" && styles.frequencyPillTextActive,
+                          ]}
+                        >
+                          {t("planned.frequencyMonthly")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
                 {accounts.length > 0 && (
@@ -289,7 +333,7 @@ export const RecordPlannedPaymentModal: React.FC<RecordPlannedPaymentModalProps>
                   style={styles.cancelButton}
                   onPress={handleDismiss}
                 >
-                  <Text style={styles.cancelButtonText}>{t("tracker.cancel")}</Text>
+                  <Text style={styles.cancelButtonText}>{t("common.cancel")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -458,6 +502,33 @@ const styles = StyleSheet.create({
   },
   recurringTextActive: {
     color: TOKENS.colors.textPrimary,
+  },
+  frequencyRow: {
+    flexDirection: "row",
+    gap: TOKENS.spacing.xs,
+    marginTop: TOKENS.spacing.xs,
+  },
+  frequencyPill: {
+    flex: 1,
+    height: 38,
+    borderRadius: TOKENS.radii.md,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.borderSubtle,
+    backgroundColor: TOKENS.colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  frequencyPillActive: {
+    borderColor: TOKENS.colors.primary,
+    backgroundColor: TOKENS.colors.primary,
+  },
+  frequencyPillText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: TOKENS.colors.textSecondary,
+  },
+  frequencyPillTextActive: {
+    color: TOKENS.colors.textOnPrimary,
   },
   accountPillsRow: {
     flexDirection: "row",

@@ -45,6 +45,27 @@ export function parseIsoDate(isoDate: string): Date {
   return new Date(year, month - 1, day, 12, 0, 0);
 }
 
+export function getNextRecurrenceDate(
+  dueDate: string,
+  frequency: "weekly" | "monthly" = "monthly"
+): string {
+  const [year, month, day] = dueDate.split("-").map(Number);
+  if (frequency === "weekly") {
+    const current = new Date(year, month - 1, day);
+    current.setDate(current.getDate() + 7);
+    const yr = current.getFullYear();
+    const mo = current.getMonth() + 1;
+    const dy = current.getDate();
+    return `${yr}-${String(mo).padStart(2, "0")}-${String(dy).padStart(2, "0")}`;
+  }
+  const targetDate = new Date(year, month, 1);
+  const yr = targetDate.getFullYear();
+  const mo = targetDate.getMonth() + 1;
+  const maxDays = new Date(yr, mo, 0).getDate();
+  const dy = Math.min(day, maxDays);
+  return `${yr}-${String(mo).padStart(2, "0")}-${String(dy).padStart(2, "0")}`;
+}
+
 export function getMondayFirstDayOfWeek(date: Date): number {
   const standardDay = date.getDay();
   return (standardDay + 6) % 7;
@@ -197,6 +218,7 @@ export function computeCycleBudget(
   let quarantinedAmount = 0;
   let projectedIncome = 0;
   const commitmentByDate = new Map<string, number>();
+  const futureIncomeByDate = new Map<string, number>();
 
   if (options?.plannedPayments) {
     for (const p of options.plannedPayments) {
@@ -216,6 +238,10 @@ export function computeCycleBudget(
         p.dueDate <= cycle.endDate
       ) {
         projectedIncome += p.amount;
+        if (p.dueDate > referenceDate) {
+          const cur = futureIncomeByDate.get(p.dueDate) ?? 0;
+          futureIncomeByDate.set(p.dueDate, cur + p.amount);
+        }
       }
       if (p.status === "pending") {
         const cur = commitmentByDate.get(p.dueDate) ?? 0;
@@ -241,6 +267,10 @@ export function computeCycleBudget(
         l.dueDate <= cycle.endDate
       ) {
         projectedIncome += l.amount;
+        if (l.dueDate > referenceDate) {
+          const cur = futureIncomeByDate.get(l.dueDate) ?? 0;
+          futureIncomeByDate.set(l.dueDate, cur + l.amount);
+        }
       }
       if (l.type === "borrow" && l.status === "active") {
         const cur = commitmentByDate.get(l.dueDate) ?? 0;
@@ -255,8 +285,36 @@ export function computeCycleBudget(
   const projectedDailyAllowance =
     remainingDaysCount > 0 ? projectedForeseeableBalance / remainingDaysCount : 0;
 
+  const daysRemainingFromDate = new Map<string, number>();
+  for (let i = 0; i < rawDays.length; i++) {
+    const d = rawDays[i];
+    if (d.date >= referenceDate) {
+      daysRemainingFromDate.set(d.date, rawDays.length - i);
+    }
+  }
+
+  const futureIncomeDailyBoosts: Array<{ date: string; dailyBoost: number }> = [];
+  futureIncomeByDate.forEach((amount, date) => {
+    const daysRemaining = daysRemainingFromDate.get(date) ?? 1;
+    const dailyBoost = daysRemaining > 0 ? amount / daysRemaining : 0;
+    futureIncomeDailyBoosts.push({ date, dailyBoost });
+  });
+
   const cycleDays: DailyAllocation[] = rawDays.map((day) => {
     const dayCommitment = commitmentByDate.get(day.date) ?? 0;
+    const baseActualQuota = day.isPast ? day.spentAmount : Math.floor(dailyAllowance);
+
+    let projectedQuota = baseActualQuota;
+    if (day.isFuture) {
+      let totalBoost = 0;
+      for (const boost of futureIncomeDailyBoosts) {
+        if (day.date >= boost.date) {
+          totalBoost += boost.dailyBoost;
+        }
+      }
+      projectedQuota = Math.floor(dailyAllowance + totalBoost);
+    }
+
     return {
       date: day.date,
       dayNumber: day.dayNumber,
@@ -266,7 +324,8 @@ export function computeCycleBudget(
       isFuture: day.isFuture,
       spentAmount: day.spentAmount,
       incomeAmount: day.incomeAmount,
-      projectedQuota: day.isPast ? day.spentAmount : Math.floor(dailyAllowance),
+      actualQuota: baseActualQuota,
+      projectedQuota,
       hasCommitment: dayCommitment > 0,
       commitmentAmount: dayCommitment,
     };

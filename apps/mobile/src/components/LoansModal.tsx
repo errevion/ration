@@ -1,7 +1,7 @@
 import type { Account, LoanRecord, LoanType } from "@ration/types";
 import { ArrowDownLeft, ArrowUpRight, Check, Pencil, Plus, Trash2, X } from "lucide-react-native";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Modal,
@@ -124,7 +124,22 @@ export const LoansModal: React.FC<LoansModalProps> = ({
     setEditingLoan(null);
   }
 
-  if (!visible) return null;
+  const activeLoans = useMemo(
+    () =>
+      loans.filter((l) => l.status === "active").sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
+    [loans]
+  );
+  const settledLoans = useMemo(
+    () =>
+      loans
+        .filter((l) => l.status === "settled")
+        .sort((a, b) =>
+          (b.settledDate || b.createdAt || b.dueDate).localeCompare(
+            a.settledDate || a.createdAt || a.dueDate
+          )
+        ),
+    [loans]
+  );
 
   const backdropOpacity = anim.interpolate({
     inputRange: [0, 1],
@@ -135,6 +150,8 @@ export const LoansModal: React.FC<LoansModalProps> = ({
     inputRange: [0, 1],
     outputRange: [550, 0],
   });
+
+  if (!visible) return null;
 
   return (
     <>
@@ -173,71 +190,67 @@ export const LoansModal: React.FC<LoansModalProps> = ({
                 {loans.length === 0 ? (
                   <Text style={styles.emptyText}>{t("planned.emptyLoans")}</Text>
                 ) : (
-                  loans.map((item) => {
-                    const isBorrow = item.type === "borrow";
-                    return (
-                      <View key={item.id} style={styles.card}>
-                        <View style={styles.cardTop}>
-                          <View style={styles.cardInfo}>
-                            <View style={styles.typeBadgeRow}>
-                              <View
-                                style={[
-                                  styles.loanTypeBadge,
-                                  isBorrow ? styles.badgeBorrow : styles.badgeLend,
-                                ]}
-                              >
-                                {isBorrow ? (
-                                  <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
-                                ) : (
-                                  <ArrowUpRight size={12} color={TOKENS.colors.success} />
-                                )}
-                                <Text
+                  <>
+                    {activeLoans.map((item) => {
+                      const isBorrow = item.type === "borrow";
+                      return (
+                        <View key={item.id} style={styles.card}>
+                          <View style={styles.cardTop}>
+                            <View style={styles.cardInfo}>
+                              <View style={styles.typeBadgeRow}>
+                                <View
                                   style={[
-                                    styles.loanTypeText,
-                                    isBorrow ? styles.textBorrow : styles.textLend,
+                                    styles.loanTypeBadge,
+                                    isBorrow ? styles.badgeBorrow : styles.badgeLend,
                                   ]}
                                 >
-                                  {isBorrow ? t("planned.borrowLabel") : t("planned.lendLabel")}
-                                </Text>
+                                  {isBorrow ? (
+                                    <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
+                                  ) : (
+                                    <ArrowUpRight size={12} color={TOKENS.colors.success} />
+                                  )}
+                                  <Text
+                                    style={[
+                                      styles.loanTypeText,
+                                      isBorrow ? styles.textBorrow : styles.textLend,
+                                    ]}
+                                  >
+                                    {isBorrow ? t("planned.borrowLabel") : t("planned.lendLabel")}
+                                  </Text>
+                                </View>
+                                <Text style={styles.cardTitle}>{item.counterparty}</Text>
                               </View>
-                              <Text style={styles.cardTitle}>{item.counterparty}</Text>
+                              <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
                             </View>
-                            <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
-                          </View>
-                          <Text style={styles.cardAmount}>
-                            {formatCurrency(item.amount, currency)}
-                          </Text>
-                        </View>
-
-                        <View style={styles.cardFooter}>
-                          <View style={styles.cardFooterLeft}>
-                            <Text style={styles.cardSubtitle}>
-                              {item.status === "settled"
-                                ? t("planned.settled")
-                                : isBorrow
-                                  ? t("planned.activeDebt")
-                                  : t("planned.activeReceivable")}
+                            <Text style={styles.cardAmount}>
+                              {formatCurrency(item.amount, currency)}
                             </Text>
-
-                            <View style={styles.iconActionsRow}>
-                              <TouchableOpacity
-                                activeOpacity={0.7}
-                                style={styles.iconButton}
-                                onPress={() => handleOpenEdit(item)}
-                              >
-                                <Pencil size={13} color={TOKENS.colors.textSecondary} />
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                activeOpacity={0.7}
-                                style={styles.iconButton}
-                                onPress={() => onDeleteLoan(item.id)}
-                              >
-                                <Trash2 size={13} color={TOKENS.colors.danger} />
-                              </TouchableOpacity>
-                            </View>
                           </View>
 
-                          {item.status === "active" && (
+                          <View style={styles.cardFooter}>
+                            <View style={styles.cardFooterLeft}>
+                              <Text style={styles.cardSubtitle}>
+                                {isBorrow ? t("planned.activeDebt") : t("planned.activeReceivable")}
+                              </Text>
+
+                              <View style={styles.iconActionsRow}>
+                                <TouchableOpacity
+                                  activeOpacity={0.7}
+                                  style={styles.iconButton}
+                                  onPress={() => handleOpenEdit(item)}
+                                >
+                                  <Pencil size={13} color={TOKENS.colors.textSecondary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  activeOpacity={0.7}
+                                  style={styles.iconButton}
+                                  onPress={() => onDeleteLoan(item.id)}
+                                >
+                                  <Trash2 size={13} color={TOKENS.colors.danger} />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+
                             <TouchableOpacity
                               activeOpacity={0.7}
                               style={styles.actionButton}
@@ -248,11 +261,73 @@ export const LoansModal: React.FC<LoansModalProps> = ({
                                 {t("planned.markSettled")}
                               </Text>
                             </TouchableOpacity>
-                          )}
+                          </View>
                         </View>
-                      </View>
-                    );
-                  })
+                      );
+                    })}
+
+                    {settledLoans.length > 0 && (
+                      <>
+                        <Text style={styles.sectionLabel}>{t("planned.history")}</Text>
+                        {settledLoans.map((item) => {
+                          const isBorrow = item.type === "borrow";
+                          return (
+                            <View key={item.id} style={[styles.card, styles.cardSettled]}>
+                              <View style={styles.cardTop}>
+                                <View style={styles.cardInfo}>
+                                  <View style={styles.typeBadgeRow}>
+                                    <View
+                                      style={[
+                                        styles.loanTypeBadge,
+                                        isBorrow ? styles.badgeBorrow : styles.badgeLend,
+                                      ]}
+                                    >
+                                      {isBorrow ? (
+                                        <ArrowDownLeft size={12} color={TOKENS.colors.danger} />
+                                      ) : (
+                                        <ArrowUpRight size={12} color={TOKENS.colors.success} />
+                                      )}
+                                      <Text
+                                        style={[
+                                          styles.loanTypeText,
+                                          isBorrow ? styles.textBorrow : styles.textLend,
+                                        ]}
+                                      >
+                                        {isBorrow
+                                          ? t("planned.borrowLabel")
+                                          : t("planned.lendLabel")}
+                                      </Text>
+                                    </View>
+                                    <Text style={styles.cardTitle}>{item.counterparty}</Text>
+                                  </View>
+                                  <Text style={styles.cardSubtitle}>{item.dueDate}</Text>
+                                </View>
+                                <Text style={styles.cardAmount}>
+                                  {formatCurrency(item.amount, currency)}
+                                </Text>
+                              </View>
+
+                              <View style={styles.cardFooter}>
+                                <View style={styles.cardFooterLeft}>
+                                  <Text style={styles.cardSubtitle}>{t("planned.settled")}</Text>
+
+                                  <View style={styles.iconActionsRow}>
+                                    <TouchableOpacity
+                                      activeOpacity={0.7}
+                                      style={styles.iconButton}
+                                      onPress={() => onDeleteLoan(item.id)}
+                                    >
+                                      <Trash2 size={13} color={TOKENS.colors.danger} />
+                                    </TouchableOpacity>
+                                  </View>
+                                </View>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
                 )}
               </View>
             </ScrollView>
@@ -288,7 +363,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: TOKENS.colors.border,
     padding: TOKENS.spacing.lg,
-    maxHeight: "85%",
+    height: "72%",
+    maxHeight: "72%",
     gap: TOKENS.spacing.md,
   },
   header: {
@@ -433,5 +509,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: TOKENS.colors.primary,
+  },
+  cardSettled: {
+    opacity: 0.6,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    color: TOKENS.colors.textMuted,
+    marginTop: TOKENS.spacing.sm,
+    marginBottom: TOKENS.spacing.xs,
   },
 });

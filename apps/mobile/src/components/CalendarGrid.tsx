@@ -9,6 +9,7 @@ interface CalendarGridProps {
   days: DailyAllocation[];
   leadingEmptyDays: number;
   trailingEmptyDays: number;
+  showProjection?: boolean;
   onSelectDay: (day: DailyAllocation) => void;
 }
 
@@ -28,6 +29,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   days,
   leadingEmptyDays,
   trailingEmptyDays,
+  showProjection = false,
   onSelectDay,
 }) => {
   const { t } = useI18n();
@@ -64,7 +66,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
           let border: string = TOKENS.colors.border;
           let dateColor: string = TOKENS.colors.textSecondary;
           let amountColor: string = TOKENS.colors.textPrimary;
-          let displayAmount = day.projectedQuota;
+          const actualAmount = day.actualQuota ?? day.projectedQuota;
+          const hasProjectedBoost = day.isFuture && day.projectedQuota > actualAmount;
+          let displayAmount = showProjection ? day.projectedQuota : actualAmount;
 
           if (day.isPast) {
             bg = TOKENS.colors.surface;
@@ -77,7 +81,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             border = TOKENS.colors.primary;
             dateColor = TOKENS.colors.textOnPrimary;
             amountColor = TOKENS.colors.textOnPrimary;
-            displayAmount = day.projectedQuota;
+            displayAmount = actualAmount;
+          } else if (showProjection && hasProjectedBoost) {
+            border = TOKENS.colors.primary;
+            amountColor = TOKENS.colors.primary;
           }
 
           return (

@@ -15,10 +15,11 @@ import { TOKENS } from "../theme/tokens.js";
 interface CycleHeaderProps {
   cycle: MoneyCycle;
   foreseeableBalance: number;
+  projectedForeseeableBalance?: number;
   actualBalance: number;
   remainingDaysCount: number;
-  dailyAllowance: number;
-  projectedDailyAllowance: number;
+  dailyAllowance?: number;
+  projectedDailyAllowance?: number;
   showProjection: boolean;
   cycleOffset: number;
   onToggleProjection: () => void;
@@ -55,10 +56,9 @@ function formatDisplayDate(isoDate: string): string {
 export const CycleHeader: React.FC<CycleHeaderProps> = ({
   cycle,
   foreseeableBalance,
+  projectedForeseeableBalance,
   actualBalance,
   remainingDaysCount,
-  dailyAllowance,
-  projectedDailyAllowance,
   showProjection,
   cycleOffset,
   onToggleProjection,
@@ -76,12 +76,12 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
   const formattedEnd = formatDisplayDate(cycle.endDate);
   const cycleRange = `${formattedStart} - ${formattedEnd}`;
 
-  const roundedDaily = Math.floor(dailyAllowance);
-  const effectiveDaily = showProjection ? Math.floor(projectedDailyAllowance) : roundedDaily;
-  const effectiveDailyText = `${cycle.currency}${effectiveDaily.toLocaleString()}`;
   const daysText = t("tracker.daysLeft", { days: remainingDaysCount });
-  const paceText = t("tracker.perDay", { amount: effectiveDailyText });
   const actualText = `${t("tracker.actualBalance")}: ${cycle.currency}${actualBalance.toLocaleString()}`;
+  const displayedForeseeable =
+    showProjection && projectedForeseeableBalance !== undefined
+      ? projectedForeseeableBalance
+      : foreseeableBalance;
 
   return (
     <div
@@ -242,7 +242,7 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
           }}
         >
           {cycle.currency}
-          {foreseeableBalance.toLocaleString()}
+          {displayedForeseeable.toLocaleString()}
         </span>
         <div
           style={{
@@ -264,16 +264,6 @@ export const CycleHeader: React.FC<CycleHeaderProps> = ({
             }}
           >
             {daysText}
-          </span>
-          <span style={{ fontSize: "12px", color: TOKENS.colors.border }}>|</span>
-          <span
-            style={{
-              fontSize: "12px",
-              fontWeight: showProjection ? 700 : 600,
-              color: showProjection ? TOKENS.colors.primary : TOKENS.colors.textSecondary,
-            }}
-          >
-            {paceText}
           </span>
         </div>
       </div>

@@ -10,6 +10,7 @@ import {
   computeCycleBudget,
   computeCycleRange,
   getMondayFirstDayOfWeek,
+  getNextRecurrenceDate,
   parseIsoDate,
 } from "../../apps/web/src/utils/budgetEngine.js";
 import { formatCurrency, formatMetricAmount } from "../../apps/web/src/utils/formatters.js";
@@ -227,5 +228,50 @@ describe("Domain Audit: Budget Engine Calculation", () => {
     const range = computeCycleRange(31, febDate);
     expect(range.startDate).toBe("2026-01-31");
     expect(range.endDate).toBe("2026-02-28");
+  });
+
+  it("calculates next recurrence dates correctly for weekly and monthly", () => {
+    expect(getNextRecurrenceDate("2026-10-05", "weekly")).toBe("2026-10-12");
+    expect(getNextRecurrenceDate("2026-10-28", "weekly")).toBe("2026-11-04");
+    expect(getNextRecurrenceDate("2026-10-15", "monthly")).toBe("2026-11-15");
+    expect(getNextRecurrenceDate("2026-01-31", "monthly")).toBe("2026-02-28");
+  });
+
+  it("calculates timeline-aware projected quotas without inflating landed today", () => {
+    const plannedPayments: PlannedPayment[] = [
+      {
+        id: "b0000000-0000-0000-0000-000000000003",
+        name: "Freelance Payment",
+        amount: 300,
+        dueDate: "2025-10-20",
+        type: "income",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    // Reference date is 2025-10-10 (22 days remaining: 10th to 31st)
+    // Starting balance 220 -> baseline quota = 220 / 22 = 10 / day
+    // On 2025-10-20, income of 300 arrives. Remaining days from 20th to 31st = 12 days.
+    // Boost = 300 / 12 = 25 / day.
+    const customCycle: MoneyCycle = {
+      ...mockCycle,
+      startingBalance: 220,
+    };
+    const result = computeCycleBudget(customCycle, [], "2025-10-10", { plannedPayments });
+
+    const dayBefore = result.cycleDays.find((d) => d.date === "2025-10-15");
+    expect(dayBefore?.actualQuota).toBe(10);
+    expect(dayBefore?.projectedQuota).toBe(10);
+
+    const dayAfter = result.cycleDays.find((d) => d.date === "2025-10-25");
+    expect(dayAfter?.actualQuota).toBe(10);
+    expect(dayAfter?.projectedQuota).toBe(35); // 10 + 25
+
+    // If landed on the day (referenceDate === "2025-10-20") but payment is still pending:
+    const landedResult = computeCycleBudget(customCycle, [], "2025-10-20", { plannedPayments });
+    const landedDay = landedResult.cycleDays.find((d) => d.date === "2025-10-20");
+    // Landed unsettled day must display normal unsettled calculation (not inflated)
+    expect(landedDay?.projectedQuota).toBe(Math.floor(customCycle.startingBalance / 12));
   });
 });

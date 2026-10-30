@@ -6,6 +6,7 @@ import type {
   LoanType,
   MoneyCycle,
   PlannedPayment,
+  RecurrenceFrequency,
   SpendTransaction,
 } from "@ration/types";
 import { useEffect, useMemo, useState } from "react";
@@ -20,7 +21,12 @@ import { QuickBar } from "./components/QuickBar.js";
 import { SettingsDrawer } from "./components/SettingsDrawer.js";
 import { I18nProvider } from "./i18n/index.js";
 import { TOKENS } from "./theme/tokens.js";
-import { computeCycleBudget, computeCycleRange, formatIsoDate } from "./utils/budgetEngine.js";
+import {
+  computeCycleBudget,
+  computeCycleRange,
+  formatIsoDate,
+  getNextRecurrenceDate,
+} from "./utils/budgetEngine.js";
 import {
   exportBackupFile,
   importBackupFile,
@@ -222,45 +228,23 @@ function TrackerApp() {
     type: "spend" | "income";
     accountId?: string;
     isRecurring?: boolean;
+    recurrenceFrequency?: RecurrenceFrequency;
   }) {
-    if (paymentData.isRecurring) {
-      const [startYear, startMonth, startDay] = paymentData.dueDate.split("-").map(Number);
-      const newItems: PlannedPayment[] = [];
-      for (let i = 0; i < 12; i++) {
-        const targetDate = new Date(startYear, startMonth - 1 + i, 1);
-        const yr = targetDate.getFullYear();
-        const mo = targetDate.getMonth() + 1;
-        const maxDays = new Date(yr, mo, 0).getDate();
-        const dy = Math.min(startDay, maxDays);
-        const occurrenceDueDate = `${yr}-${String(mo).padStart(2, "0")}-${String(dy).padStart(2, "0")}`;
-
-        newItems.push({
-          id: crypto.randomUUID(),
-          name: paymentData.name,
-          amount: paymentData.amount,
-          dueDate: occurrenceDueDate,
-          type: paymentData.type,
-          accountId: paymentData.accountId,
-          status: "pending",
-          isRecurring: true,
-          createdAt: new Date().toISOString(),
-        });
-      }
-      setPlannedPayments((prev) => [...prev, ...newItems]);
-    } else {
-      const newPayment: PlannedPayment = {
-        id: crypto.randomUUID(),
-        name: paymentData.name,
-        amount: paymentData.amount,
-        dueDate: paymentData.dueDate,
-        type: paymentData.type,
-        accountId: paymentData.accountId,
-        status: "pending",
-        isRecurring: false,
-        createdAt: new Date().toISOString(),
-      };
-      setPlannedPayments((prev) => [...prev, newPayment]);
-    }
+    const newPayment: PlannedPayment = {
+      id: crypto.randomUUID(),
+      name: paymentData.name,
+      amount: paymentData.amount,
+      dueDate: paymentData.dueDate,
+      type: paymentData.type,
+      accountId: paymentData.accountId,
+      status: "pending",
+      isRecurring: Boolean(paymentData.isRecurring),
+      recurrenceFrequency: paymentData.isRecurring
+        ? (paymentData.recurrenceFrequency ?? "monthly")
+        : undefined,
+      createdAt: new Date().toISOString(),
+    };
+    setPlannedPayments((prev) => [...prev, newPayment]);
   }
 
   function handleEditPlannedPayment(
@@ -272,6 +256,7 @@ function TrackerApp() {
       type: "spend" | "income";
       accountId?: string;
       isRecurring?: boolean;
+      recurrenceFrequency?: RecurrenceFrequency;
     }
   ) {
     setPlannedPayments((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
@@ -285,9 +270,31 @@ function TrackerApp() {
     const payment = plannedPayments.find((p) => p.id === paymentId);
     if (!payment) return;
 
-    setPlannedPayments((prev) =>
-      prev.map((p) => (p.id === paymentId ? { ...p, status: "completed" } : p))
-    );
+    const nextDueDate = payment.isRecurring
+      ? getNextRecurrenceDate(payment.dueDate, payment.recurrenceFrequency ?? "monthly")
+      : null;
+
+    setPlannedPayments((prev) => {
+      const updated = prev.map((p) =>
+        p.id === paymentId ? { ...p, status: "completed" as const } : p
+      );
+      if (payment.isRecurring && nextDueDate) {
+        const nextPayment: PlannedPayment = {
+          id: crypto.randomUUID(),
+          name: payment.name,
+          amount: payment.amount,
+          dueDate: nextDueDate,
+          type: payment.type,
+          accountId: payment.accountId,
+          status: "pending",
+          isRecurring: true,
+          recurrenceFrequency: payment.recurrenceFrequency ?? "monthly",
+          createdAt: new Date().toISOString(),
+        };
+        return [...updated, nextPayment];
+      }
+      return updated;
+    });
 
     const targetAccId =
       payment.accountId || accounts.find((a) => a.isPrimary)?.id || accounts[0]?.id;
@@ -511,10 +518,9 @@ function TrackerApp() {
           <CycleHeader
             cycle={displayedCycle}
             foreseeableBalance={computation.foreseeableBalance}
+            projectedForeseeableBalance={computation.projectedForeseeableBalance}
             actualBalance={computation.actualBalance}
             remainingDaysCount={computation.remainingDaysCount}
-            dailyAllowance={computation.dailyAllowance}
-            projectedDailyAllowance={computation.projectedDailyAllowance}
             showProjection={showProjection}
             cycleOffset={cycleOffset}
             onToggleProjection={() => setShowProjection((prev) => !prev)}
@@ -531,6 +537,7 @@ function TrackerApp() {
             days={computation.cycleDays}
             leadingEmptyDays={computation.leadingEmptyDays}
             trailingEmptyDays={computation.trailingEmptyDays}
+            showProjection={showProjection}
             onSelectDay={setSelectedDay}
           />
         </div>
